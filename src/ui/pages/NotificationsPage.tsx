@@ -36,14 +36,14 @@ const NotificationsPage: React.FC = () => {
   const currentAsesorId = user?.id; // Use numeric ID
 
   const fetchNotifications = useCallback(async () => {
-    if (!currentAsesorId) return;
+    if (!user) return;
     setLoading(true);
     setError(null);
     try {
       if (!window.api || !window.api.getAvisos) {
         throw new Error('API para obtener avisos no disponible.');
       }
-      const fetchedNotifications = await window.api.getAvisos(isAdmin() ? undefined : currentAsesorId);
+      const fetchedNotifications = await window.api.getAvisos(user);
       setNotifications(fetchedNotifications);
     } catch (err: any) {
       console.error('Failed to fetch notifications:', err);
@@ -51,7 +51,7 @@ const NotificationsPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentAsesorId, isAdmin]);
+  }, [user]);
 
   useEffect(() => {
     fetchNotifications();

@@ -128,13 +128,15 @@ const AgentsPage: React.FC = () => {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">AG.ES.COM</Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleAddClick}
-        >
-          Añadir Agente
-        </Button>
+        {isAdmin() && (
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleAddClick}
+          >
+            Añadir Agente
+          </Button>
+        )}
       </Box>
 
       <Card>
@@ -146,7 +148,7 @@ const AgentsPage: React.FC = () => {
                   <TableCell>Agente</TableCell>
                   <TableCell>Estado</TableCell>
                   <TableCell>Compañía</TableCell>
-                  <TableCell align="right">Acciones</TableCell>
+                  {isAdmin() && <TableCell align="right">Acciones</TableCell>}
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -155,10 +157,12 @@ const AgentsPage: React.FC = () => {
                     <TableCell>{agent.name}</TableCell>
                     <TableCell>{agent.state}</TableCell>
                     <TableCell>{agent.company}</TableCell>
-                    <TableCell align="right">
-                      <IconButton onClick={() => handleEditClick(agent)}><EditIcon /></IconButton>
-                      <IconButton onClick={() => handleDelete(agent.id)}><DeleteIcon /></IconButton>
-                    </TableCell>
+                    {isAdmin() && (
+                      <TableCell align="right">
+                        <IconButton onClick={() => handleEditClick(agent)}><EditIcon /></IconButton>
+                        <IconButton onClick={() => handleDelete(agent.id)}><DeleteIcon /></IconButton>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -212,6 +216,7 @@ const AgentsPage: React.FC = () => {
       </Snackbar>
     </Box>
   );
+
 };
 
 export default AgentsPage;

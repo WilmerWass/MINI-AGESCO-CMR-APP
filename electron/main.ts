@@ -129,8 +129,8 @@ app.whenReady().then(async () => {
   });
 
   // IPC Main handlers for Avisos operations
-  ipcMain.handle('get-avisos', async (event, asesorId) => {
-    return getAvisos(db, asesorId);
+  ipcMain.handle('get-avisos', async (event, user) => {
+    return getAvisos(db, user);
   });
   ipcMain.handle('add-aviso', async (event, aviso) => {
     return addAviso(db, aviso);

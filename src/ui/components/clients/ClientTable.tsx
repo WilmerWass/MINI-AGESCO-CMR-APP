@@ -225,7 +225,7 @@ const ClientTable: React.FC<ClientTableProps> = ({ clients, users = [], onView, 
                       {client.estatus}
                     </Box>
                   </TableCell>
-                  <TableCell>{userMap.get(client.asesorId) || client.asesorId}</TableCell>
+                  <TableCell>{userMap.get(parseInt(client.asesorId, 10)) || client.asesorId}</TableCell>
                   <TableCell>{client.ultimaActualizacion}</TableCell>
                   <TableCell>
                     <Button size="small" variant="outlined" sx={{ mr: 1 }} onClick={() => onView(client)}>Ver</Button>

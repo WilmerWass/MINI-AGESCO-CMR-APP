@@ -151,8 +151,13 @@ export async function getDashboardData(db: any, period: 'today' | 'week' | 'mont
 
 
 // --- Clientes ---
-export async function getClientes(db: any, asesorId: string) {
-  return db.all('SELECT * FROM Clientes WHERE asesorId = ?', asesorId);
+export async function getClientes(db: any, asesorId?: string) {
+  if (asesorId) {
+    return db.all('SELECT * FROM Clientes WHERE asesorId = ?', asesorId);
+  } else {
+    // If no asesorId is provided (for admins), return all clients
+    return db.all('SELECT * FROM Clientes');
+  }
 }
 
 export async function addCliente(db: any, cliente: any) {
@@ -205,8 +210,14 @@ export async function deleteAgente(db: any, id: number) {
 }
 
 // --- Avisos ---
-export async function getAvisos(db: any, asesorId: string) {
-  return db.all('SELECT * FROM Avisos WHERE asesorId = ?', asesorId);
+export async function getAvisos(db: any, user: { id: number; email: string; }) {
+  if (!user) return [];
+  // Selects notices created by the user, sent to the user, or sent to "Todos"
+  return db.all(
+    'SELECT * FROM Avisos WHERE asesorId = ? OR recipient = ? OR recipient = "Todos"',
+    user.id,
+    user.email
+  );
 }
 
 export async function addAviso(db: any, aviso: any) {
