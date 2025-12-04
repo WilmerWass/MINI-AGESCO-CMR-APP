@@ -4,13 +4,14 @@ import fs from 'node:fs';
 import bcrypt from 'bcryptjs';
 import {
   initializeDatabase,
-  getClientes, addCliente, updateCliente, deleteCliente,
-  getAgentes, addAgente, updateAgente, deleteAgente,
-  getAvisos, addAviso, updateAviso, deleteAviso,
-  getEnlaces, addEnlace, updateEnlace, deleteEnlace,
-  getUsuarios, addUsuario, updateUsuario, deleteUsuario, getUsuarioByEmail,
+  getClientes, getClienteById, addCliente, updateCliente, deleteCliente,
+  getAgentes, getAgenteById, addAgente, updateAgente, deleteAgente,
+  getAvisos, getAvisoById, addAviso, updateAviso, deleteAviso,
+  getEnlaces, getEnlaceById, addEnlace, updateEnlace, deleteEnlace,
+  getUsuarios, getUsuarioById, addUsuario, updateUsuario, deleteUsuario, getUsuarioByEmail,
   getDashboardData
 } from './database';
+import { startP2PServer } from './p2p';
 
 let db: any; // Declare a variable to hold the database instance
 
@@ -74,8 +75,12 @@ app.on('activate', () => {
 });
 
 app.whenReady().then(async () => {
-  db = await initializeDatabase(); // Initialize the database and store the instance
+  db = await initializeDatabase();
   createWindow();
+
+  if (win) {
+    startP2PServer(win, db);
+  }
 
   // IPC Main handler for Login
   ipcMain.handle('login', async (event, { email, password }) => {
@@ -101,60 +106,32 @@ app.whenReady().then(async () => {
   });
 
   // IPC Main handlers for Client operations
-  ipcMain.handle('get-clientes', async (event, asesorId) => {
-    return getClientes(db, asesorId);
-  });
-  ipcMain.handle('add-cliente', async (event, cliente) => {
-    return addCliente(db, cliente);
-  });
-  ipcMain.handle('update-cliente', async (event, id, updates) => {
-    return updateCliente(db, id, updates);
-  });
-  ipcMain.handle('delete-cliente', async (event, id) => {
-    return deleteCliente(db, id);
-  });
+  ipcMain.handle('get-clientes', async (event, asesorId) => getClientes(db, asesorId));
+  ipcMain.handle('get-cliente-by-id', async (event, id) => getClienteById(db, id));
+  ipcMain.handle('add-cliente', async (event, cliente) => addCliente(db, cliente));
+  ipcMain.handle('update-cliente', async (event, id, updates) => updateCliente(db, id, updates));
+  ipcMain.handle('delete-cliente', async (event, id) => deleteCliente(db, id));
 
   // IPC Main handlers for Agentes operations
-  ipcMain.handle('get-agentes', async (event, asesorId) => {
-    return getAgentes(db, asesorId);
-  });
-  ipcMain.handle('add-agente', async (event, agente) => {
-    return addAgente(db, agente);
-  });
-  ipcMain.handle('update-agente', async (event, id, updates) => {
-    return updateAgente(db, id, updates);
-  });
-  ipcMain.handle('delete-agente', async (event, id) => {
-    return deleteAgente(db, id);
-  });
+  ipcMain.handle('get-agentes', async (event, asesorId) => getAgentes(db, asesorId));
+  ipcMain.handle('get-agente-by-id', async (event, id) => getAgenteById(db, id));
+  ipcMain.handle('add-agente', async (event, agente) => addAgente(db, agente));
+  ipcMain.handle('update-agente', async (event, id, updates) => updateAgente(db, id, updates));
+  ipcMain.handle('delete-agente', async (event, id) => deleteAgente(db, id));
 
   // IPC Main handlers for Avisos operations
-  ipcMain.handle('get-avisos', async (event, user) => {
-    return getAvisos(db, user);
-  });
-  ipcMain.handle('add-aviso', async (event, aviso) => {
-    return addAviso(db, aviso);
-  });
-  ipcMain.handle('update-aviso', async (event, id, updates) => {
-    return updateAviso(db, id, updates);
-  });
-  ipcMain.handle('delete-aviso', async (event, id) => {
-    return deleteAviso(db, id);
-  });
+  ipcMain.handle('get-avisos', async (event, user) => getAvisos(db, user));
+  ipcMain.handle('get-aviso-by-id', async (event, id) => getAvisoById(db, id));
+  ipcMain.handle('add-aviso', async (event, aviso) => addAviso(db, aviso));
+  ipcMain.handle('update-aviso', async (event, id, updates) => updateAviso(db, id, updates));
+  ipcMain.handle('delete-aviso', async (event, id) => deleteAviso(db, id));
 
   // IPC Main handlers for Enlaces operations
-  ipcMain.handle('get-enlaces', async (event, asesorId) => {
-    return getEnlaces(db, asesorId);
-  });
-  ipcMain.handle('add-enlace', async (event, enlace) => {
-    return addEnlace(db, enlace);
-  });
-  ipcMain.handle('update-enlace', async (event, id, updates) => {
-    return updateEnlace(db, id, updates);
-  });
-  ipcMain.handle('delete-enlace', async (event, id) => {
-    return deleteEnlace(db, id);
-  });
+  ipcMain.handle('get-enlaces', async (event, asesorId) => getEnlaces(db, asesorId));
+  ipcMain.handle('get-enlace-by-id', async (event, id) => getEnlaceById(db, id));
+  ipcMain.handle('add-enlace', async (event, enlace) => addEnlace(db, enlace));
+  ipcMain.handle('update-enlace', async (event, id, updates) => updateEnlace(db, id, updates));
+  ipcMain.handle('delete-enlace', async (event, id) => deleteEnlace(db, id));
 
   // IPC Main handler for Dashboard
   ipcMain.handle('get-dashboard-data', async (event, period) => {
@@ -168,10 +145,8 @@ app.whenReady().then(async () => {
   });
 
   // IPC Main handlers for Usuarios operations
-  ipcMain.handle('get-usuarios', async (event) => {
-    return getUsuarios(db);
-  });
-  
+  ipcMain.handle('get-usuarios', async (event) => getUsuarios(db));
+  ipcMain.handle('get-usuario-by-id', async (event, id) => getUsuarioById(db, id));
   ipcMain.handle('add-usuario', async (event, usuario) => {
     try {
       const existingUser = await getUsuarioByEmail(db, usuario.email);
@@ -186,13 +161,9 @@ app.whenReady().then(async () => {
     }
   });
 
-  ipcMain.handle('update-usuario', async (event, id, updates) => {
-    return updateUsuario(db, id, updates);
-  });
+  ipcMain.handle('update-usuario', async (event, id, updates) => updateUsuario(db, id, updates));
 
-  ipcMain.handle('delete-usuario', async (event, id) => {
-    return deleteUsuario(db, id);
-  });
+  ipcMain.handle('delete-usuario', async (event, id) => deleteUsuario(db, id));
 
   // IPC Main handler for saving avatar
   ipcMain.handle('save-avatar', async (event, filePath) => {
