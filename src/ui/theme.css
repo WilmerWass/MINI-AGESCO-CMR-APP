@@ -1,0 +1,15 @@
+:root {
+  --background: hsl(0, 0%, 96.1%);
+  --foreground: hsl(224, 71.4%, 4.1%);
+  --primary: hsl(232, 64%, 30%);
+  --primary-foreground: hsl(0, 0%, 98%);
+  --secondary: hsl(0, 0%, 92%);
+  --accent: hsl(174, 44%, 51%);
+  --destructive: hsl(0, 84.2%, 60.2%);
+  --card: hsl(0, 0%, 100%);
+  --border: hsl(0, 0%, 89.8%);
+  --sidebar-background: hsl(232, 64%, 20%);
+  --sidebar-foreground: hsl(0, 0%, 92%);
+  --sidebar-primary: hsl(174, 44%, 51%);
+  --sidebar-accent: hsl(232, 64%, 25%);
+}

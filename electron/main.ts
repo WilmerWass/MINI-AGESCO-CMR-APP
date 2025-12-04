@@ -1,0 +1,213 @@
+import { app, BrowserWindow, ipcMain } from 'electron';
+import path from 'node:path';
+import fs from 'node:fs';
+import bcrypt from 'bcryptjs';
+import {
+  initializeDatabase,
+  getClientes, addCliente, updateCliente, deleteCliente,
+  getAgentes, addAgente, updateAgente, deleteAgente,
+  getAvisos, addAviso, updateAviso, deleteAviso,
+  getEnlaces, addEnlace, updateEnlace, deleteEnlace,
+  getUsuarios, addUsuario, updateUsuario, deleteUsuario, getUsuarioByEmail,
+  getDashboardData
+} from './database';
+
+let db: any; // Declare a variable to hold the database instance
+
+// The built directory structure
+//
+// ├─┬─┬ dist
+// │ │ └── frontend
+// │ └── main
+// │   └── index.js
+// └── package.json
+process.env.DIST = path.join(__dirname, '../dist');
+process.env.VITE_PUBLIC = process.env.VITE_DEV_SERVER_URL
+  ? path.join(process.env.DIST, '../public')
+  : process.env.DIST;
+
+let win: BrowserWindow | null;
+// 🚧 Use ['ENV_NAME'] avoid vite:define plugin - Vite@2.x
+const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'];
+
+function createWindow() {
+  win = new BrowserWindow({
+    icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      // Enable Node.js integration for preload script
+      nodeIntegration: false, // For security, keep false
+      contextIsolation: true, // For security, keep true
+    },
+  });
+
+  // Test active push message to Renderer-process.
+  win.webContents.on('did-finish-load', () => {
+    win?.webContents.send('main-process-message', (new Date).toLocaleString());
+  });
+
+  if (VITE_DEV_SERVER_URL) {
+    win.loadURL(VITE_DEV_SERVER_URL);
+  } else {
+    // win.loadFile('dist/index.html')
+    win.loadFile(path.join(process.env.DIST, 'index.html'));
+  }
+
+}
+
+// Quit when all windows are closed, except on macOS. There, it's common
+// for applications and their menu bar to stay active until the user quits
+// explicitly with Cmd + Q.
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    app.quit();
+    win = null;
+  }
+});
+
+app.on('activate', () => {
+  // On OS X it's common to re-create a window in the app when the
+  // dock icon is clicked and there are no other windows open.
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  }
+});
+
+app.whenReady().then(async () => {
+  db = await initializeDatabase(); // Initialize the database and store the instance
+  createWindow();
+
+  // IPC Main handler for Login
+  ipcMain.handle('login', async (event, { email, password }) => {
+    try {
+      const user = await getUsuarioByEmail(db, email);
+      if (!user) {
+        return { success: false, message: 'El correo electrónico no está registrado.' };
+      }
+      
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) {
+        return { success: false, message: 'La contraseña es incorrecta.' };
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password: _, ...userWithoutPassword } = user;
+      return { success: true, user: userWithoutPassword };
+      
+    } catch (error) {
+      console.error('Login error:', error);
+      return { success: false, message: `Error en el inicio de sesión: ${error.message}` };
+    }
+  });
+
+  // IPC Main handlers for Client operations
+  ipcMain.handle('get-clientes', async (event, asesorId) => {
+    return getClientes(db, asesorId);
+  });
+  ipcMain.handle('add-cliente', async (event, cliente) => {
+    return addCliente(db, cliente);
+  });
+  ipcMain.handle('update-cliente', async (event, id, updates) => {
+    return updateCliente(db, id, updates);
+  });
+  ipcMain.handle('delete-cliente', async (event, id) => {
+    return deleteCliente(db, id);
+  });
+
+  // IPC Main handlers for Agentes operations
+  ipcMain.handle('get-agentes', async (event, asesorId) => {
+    return getAgentes(db, asesorId);
+  });
+  ipcMain.handle('add-agente', async (event, agente) => {
+    return addAgente(db, agente);
+  });
+  ipcMain.handle('update-agente', async (event, id, updates) => {
+    return updateAgente(db, id, updates);
+  });
+  ipcMain.handle('delete-agente', async (event, id) => {
+    return deleteAgente(db, id);
+  });
+
+  // IPC Main handlers for Avisos operations
+  ipcMain.handle('get-avisos', async (event, asesorId) => {
+    return getAvisos(db, asesorId);
+  });
+  ipcMain.handle('add-aviso', async (event, aviso) => {
+    return addAviso(db, aviso);
+  });
+  ipcMain.handle('update-aviso', async (event, id, updates) => {
+    return updateAviso(db, id, updates);
+  });
+  ipcMain.handle('delete-aviso', async (event, id) => {
+    return deleteAviso(db, id);
+  });
+
+  // IPC Main handlers for Enlaces operations
+  ipcMain.handle('get-enlaces', async (event, asesorId) => {
+    return getEnlaces(db, asesorId);
+  });
+  ipcMain.handle('add-enlace', async (event, enlace) => {
+    return addEnlace(db, enlace);
+  });
+  ipcMain.handle('update-enlace', async (event, id, updates) => {
+    return updateEnlace(db, id, updates);
+  });
+  ipcMain.handle('delete-enlace', async (event, id) => {
+    return deleteEnlace(db, id);
+  });
+
+  // IPC Main handler for Dashboard
+  ipcMain.handle('get-dashboard-data', async (event, period) => {
+    try {
+      const data = await getDashboardData(db, period);
+      return { success: true, data };
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      return { success: false, message: `Error al obtener datos del informe: ${error.message}` };
+    }
+  });
+
+  // IPC Main handlers for Usuarios operations
+  ipcMain.handle('get-usuarios', async (event) => {
+    return getUsuarios(db);
+  });
+  
+  ipcMain.handle('add-usuario', async (event, usuario) => {
+    try {
+      const existingUser = await getUsuarioByEmail(db, usuario.email);
+      if (existingUser) {
+        return { success: false, message: 'El correo electrónico ya está registrado.' };
+      }
+      const newUserId = await addUsuario(db, usuario);
+      return { success: true, userId: newUserId };
+    } catch (error) {
+      console.error('Error adding user:', error);
+      return { success: false, message: `No se pudo crear el usuario: ${error.message}` };
+    }
+  });
+
+  ipcMain.handle('update-usuario', async (event, id, updates) => {
+    return updateUsuario(db, id, updates);
+  });
+
+  ipcMain.handle('delete-usuario', async (event, id) => {
+    return deleteUsuario(db, id);
+  });
+
+  // IPC Main handler for saving avatar
+  ipcMain.handle('save-avatar', async (event, filePath) => {
+    try {
+      const avatarsDir = path.join(process.cwd(), 'public', 'avatars');
+      if (!fs.existsSync(avatarsDir)) {
+        fs.mkdirSync(avatarsDir, { recursive: true });
+      }
+      const uniqueFilename = `avatar-${Date.now()}${path.extname(filePath)}`;
+      const destPath = path.join(avatarsDir, uniqueFilename);
+      fs.copyFileSync(filePath, destPath);
+      return `/avatars/${uniqueFilename}`;
+    } catch (error) {
+      console.error('Failed to save avatar:', error);
+      return null;
+    }
+  });
+});

@@ -1,0 +1,31 @@
+# Node / NPM
+node_modules
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+
+# Build / Distribution
+dist
+dist-electron
+release
+build
+
+# Development
+.vite
+.env
+.env.*
+*.local
+
+# SQLite Database
+*.db
+*.db-journal
+
+# Operating System
+.DS_Store
+Thumbs.db
+
+# IDE / Editor
+.vscode
+.idea
+*.suo
+*.user
