@@ -6,12 +6,20 @@ const mdns = require('mdns-js');
 import { getAllSyncData } from './database';
 const fetch = require('node-fetch');
 
-let peersActivos: { name: string; ip: string; port: number }[] = [];
+// Configuration
+const BASE_P2P_SERVER_PORT = 3123;
+const MAX_PORT_ATTEMPTS = 10;
+const P2P_SYNC_INTERVAL_MS = 300000; // 5 minutes
+const MDNS_SERVICE_TYPE = 'mi-electron-sync';
+const MDNS_DISCOVERY_PORT = 3000; // This port is used for mDNS discovery, not the Express server
+
+// State variables
+let peersActivos: { name: string; ip: string; port: number; lastSeen: number }[] = [];
 let mainWindow: BrowserWindow | null = null;
 let db: any = null;
+let actualServerPort: number | null = null; // The port our Express server actually binds to
 
-// --- MODULE 1: DISCOVERY AND SERVER ---
-
+// --- UTILITY FUNCTIONS ---
 function getLocalIp(): string | null {
   const interfaces = os.networkInterfaces();
   for (const name of Object.keys(interfaces)) {
@@ -27,10 +35,32 @@ function getLocalIp(): string | null {
   return null;
 }
 
+// --- MODULE 1: DISCOVERY AND SERVER ---
+
+// mDNS Advertisement (moved out to be called after server port is known)
+let mdnsAdvertisement: any = null;
+function startMdnsAdvertisement(port: number) {
+  if (mdnsAdvertisement) {
+    mdnsAdvertisement.stop();
+  }
+  const localIp = getLocalIp();
+  if (localIp) {
+    mdnsAdvertisement = mdns.createAdvertisement(mdns.tcp(MDNS_SERVICE_TYPE), MDNS_DISCOVERY_PORT, {
+      name: os.hostname(),
+      txtRecord: {
+        app: 'mini-agesco-crm',
+        // Advertise the actual HTTP server port in the TXT record
+        http_port: port.toString() 
+      }
+    });
+    mdnsAdvertisement.start();
+    console.log(`mDNS service '${MDNS_SERVICE_TYPE}' advertised on port ${MDNS_DISCOVERY_PORT} with HTTP port ${port}.`);
+  }
+}
+
+// mDNS Discovery
 function startMdnsDiscovery() {
-  const serviceType = 'mi-electron-sync';
-  
-  const browser = mdns.createBrowser(mdns.tcp(serviceType));
+  const browser = mdns.createBrowser(mdns.tcp(MDNS_SERVICE_TYPE));
 
   browser.on('ready', () => {
     console.log('mDNS browser ready for discovery...');
@@ -38,38 +68,60 @@ function startMdnsDiscovery() {
   });
 
   browser.on('update', (data: any) => {
-    console.log('mDNS service updated:', data);
+    // console.log('mDNS service updated:', data);
     const peerName = data.host;
     const ip = data.addresses[0];
-    const port = data.port;
+    const advertisedHttpPort = data.txt && data.txt.http_port ? parseInt(data.txt.http_port) : null;
 
-    if (peerName && ip && port) {
-      const existingPeer = peersActivos.find(p => p.name === peerName);
-      if (existingPeer) {
-        existingPeer.ip = ip;
-        // Use the fixed port for the server, not the discovery port
-        existingPeer.port = 3123; 
+    if (peerName && ip && advertisedHttpPort) {
+      // Don't add self to the peer list
+      if (ip === getLocalIp() && advertisedHttpPort === actualServerPort) {
+        return;
+      }
+
+      const existingPeerIndex = peersActivos.findIndex(p => p.name === peerName);
+      if (existingPeerIndex !== -1) {
+        // Update existing peer
+        peersActivos[existingPeerIndex] = {
+          name: peerName,
+          ip: ip,
+          port: advertisedHttpPort,
+          lastSeen: Date.now()
+        };
       } else {
-        peersActivos.push({ name: peerName, ip, port: 3123 });
+        // Add new peer
+        peersActivos.push({ name: peerName, ip, port: advertisedHttpPort, lastSeen: Date.now() });
       }
-      console.log('Active peers:', peersActivos);
+      // console.log('Active peers:', peersActivos);
     }
+    // Clean up old peers (e.g., if they went offline) - could be a separate scheduled task
+    peersActivos = peersActivos.filter(p => (Date.now() - p.lastSeen) < (P2P_SYNC_INTERVAL_MS * 2)); // Keep peers seen within 10 minutes
   });
-
-  const localIp = getLocalIp();
-  if (localIp) {
-    const ad = mdns.createAdvertisement(mdns.tcp(serviceType), 3000, {
-      name: os.hostname(),
-      txtRecord: {
-        app: 'mini-agesco-crm'
-      }
-    });
-    ad.start();
-    console.log(`mDNS service '${serviceType}' advertised on port 3000.`);
-  }
 }
 
-function startExpressServer() {
+// Express Server with dynamic port finding
+function findPortAndStartExpressServer(appInstance: express.Application, currentPort: number, attempts: number) {
+  if (attempts >= MAX_PORT_ATTEMPTS) {
+    console.error(`Failed to bind P2P server after ${MAX_PORT_ATTEMPTS} attempts.`);
+    return;
+  }
+
+  const server = appInstance.listen(currentPort, () => {
+    actualServerPort = currentPort;
+    console.log(`P2P server listening on port ${actualServerPort}`);
+    // Start mDNS advertisement AFTER successfully binding to a port
+    startMdnsAdvertisement(actualServerPort); 
+  }).on('error', (err: any) => {
+    if (err.code === 'EADDRINUSE') {
+      console.log(`Port ${currentPort} is busy, trying next one... (Attempt ${attempts + 1}/${MAX_PORT_ATTEMPTS})`);
+      findPortAndStartExpressServer(appInstance, currentPort + 1, attempts + 1);
+    } else {
+      console.error('P2P server error:', err);
+    }
+  });
+}
+
+function setupExpressServer() {
   const app = express();
   app.use(bodyParser.json());
 
@@ -84,10 +136,9 @@ function startExpressServer() {
     res.json(dataLocal);
   });
 
-  app.listen(3123, () => {
-    console.log('P2P server listening on port 3123');
-  });
+  findPortAndStartExpressServer(app, BASE_P2P_SERVER_PORT, 0);
 }
+
 
 async function obtener_data_sqlite_para_respuesta() {
   if (!db) return {};
@@ -100,9 +151,12 @@ async function iniciarSincronizacionP2P() {
   console.log('Starting P2P sync cycle...');
   const dataLocal = await obtener_data_sqlite_para_peticion();
 
-  for (const peer of peersActivos) {
-    if (peer.ip === getLocalIp()) continue;
+  // Filter out self and potentially dead peers (though mDNS cleanup helps)
+  const peersToSync = peersActivos.filter(peer => 
+    peer.ip !== getLocalIp() || peer.port !== actualServerPort
+  );
 
+  for (const peer of peersToSync) {
     console.log(`Syncing with peer: ${peer.name} at http://${peer.ip}:${peer.port}/sync/request`);
     try {
       const response = await fetch(`http://${peer.ip}:${peer.port}/sync/request`, {
@@ -117,8 +171,14 @@ async function iniciarSincronizacionP2P() {
       if (mainWindow) {
         mainWindow.webContents.send('p2p-data-in', dataDelPeer);
       }
+      // Update lastSeen for successful sync
+      const peerIndex = peersActivos.findIndex(p => p.name === peer.name);
+      if (peerIndex !== -1) {
+        peersActivos[peerIndex].lastSeen = Date.now();
+      }
     } catch (error) {
       console.error(`Failed to sync with peer ${peer.name}:`, error);
+      // Remove peer if unreachable? mDNS will re-add if it comes back online
       peersActivos = peersActivos.filter(p => p.name !== peer.name);
     }
   }
@@ -133,8 +193,8 @@ async function obtener_data_sqlite_para_peticion() {
 export function startP2PServer(win: BrowserWindow, database: any) {
   mainWindow = win;
   db = database;
-  startMdnsDiscovery();
-  startExpressServer();
-  setInterval(iniciarSincronizacionP2P, 300000);
-  console.log('P2P synchronization scheduled every 5 minutes.');
+  startMdnsDiscovery(); // Start discovery right away
+  setupExpressServer(); // Start Express server with dynamic port finding
+  setInterval(iniciarSincronizacionP2P, P2P_SYNC_INTERVAL_MS);
+  console.log('P2P synchronization scheduled.');
 }
