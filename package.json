@@ -9,6 +9,21 @@
     "build": "tsc && NODE_OPTIONS=--max-old-space-size=4096 vite build",
     "build:electron": "npm run build && electron-builder"
   },
+  "build": {
+    "appId": "com.agesco.crm",
+    "productName": "MINI-AGESCO-CMR-APP",
+    "files": [
+      "dist",
+      "dist-electron"
+    ],
+    "directories": {
+      "buildResources": "build-resources"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "build-resources/icon.ico"
+    }
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
