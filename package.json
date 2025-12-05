@@ -6,7 +6,8 @@
   "scripts": {
     "dev:electron": "vite",
     "dev": "vite",
-    "build": "tsc && vite build"
+    "build": "tsc && NODE_OPTIONS=--max-old-space-size=4096 vite build",
+    "build:electron": "npm run build && electron-builder"
   },
   "keywords": [],
   "author": "",
@@ -38,6 +39,7 @@
     "@vitejs/plugin-react": "^5.1.1",
     "autoprefixer": "^10.4.22",
     "electron": "^39.2.3",
+    "electron-builder": "^26.0.12",
     "postcss": "^8.5.6",
     "sqlite3": "^5.1.7",
     "tailwindcss": "^4.1.17",
