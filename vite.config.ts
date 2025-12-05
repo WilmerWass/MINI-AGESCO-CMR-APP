@@ -13,7 +13,7 @@ export default defineConfig({
         vite: {
           build: {
             rollupOptions: {
-              external: ['sqlite3', 'sqlite'],
+              external: ['sqlite3', 'sqlite', 'kerberos', '@mongodb-js/zstd', '@aws-sdk/credential-providers', 'gcp-metadata', 'snappy', 'socks', 'mongodb-client-encryption'],
             },
           },
         },

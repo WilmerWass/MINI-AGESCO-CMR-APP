@@ -1,17 +1,21 @@
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
-import path from 'node:path';
-import fs from 'node:fs';
 import { app } from 'electron';
+import fs from 'node:fs';
+import { Collection, ObjectId } from 'mongodb';
 import bcrypt from 'bcryptjs';
+import { connectToMongoDB, getCollection } from './mongo';
 
-const DB_PATH = path.join(app.getPath('userData'), 'agesco_crm.db');
+let clientesCollection: Collection;
+let agentesCollection: Collection;
+let avisosCollection: Collection;
+let enlacesCollection: Collection;
+let usuariosCollection: Collection;
 
-async function seedDatabase(db: any) {
-  const adminUser = await getUsuarioByEmail(db, 'admin@agesco.com');
+
+async function seedDatabase() {
+  const adminUser = await usuariosCollection.findOne({ email: 'admin@agesco.com' });
   if (!adminUser) {
     console.log('Admin user not found. Seeding initial admin user...');
-    await addUsuario(db, {
+    await addUsuario({
       name: 'Admin',
       email: 'admin@agesco.com',
       password: 'admin',
@@ -22,269 +26,426 @@ async function seedDatabase(db: any) {
   }
 }
 
-async function addColumn(db: any, tableName: string, columnName: string, columnDef: string) {
+
+
+export async function initializeDatabase(): Promise<void> {
+  const db = await connectToMongoDB();
+
+  clientesCollection = db.collection('Clientes');
+  agentesCollection = db.collection('Agentes');
+  avisosCollection = db.collection('Avisos');
+  enlacesCollection = db.collection('Enlaces');
+  usuariosCollection = db.collection('Usuarios');
+
+  // Ensure indexes for frequently queried fields like email for Usuarios
+  await usuariosCollection.createIndex({ email: 1 }, { unique: true });
+  // Add other indexes as needed for performance, e.g., asesorId for Clientes, Agentes, Avisos, Enlaces
+
+  await clientesCollection.createIndex({ asesorId: 1 });
+  await agentesCollection.createIndex({ asesorId: 1 });
+  await avisosCollection.createIndex({ asesorId: 1 });
+  await enlacesCollection.createIndex({ asesorId: 1 });
+
+  await seedDatabase();
+  console.log('Database initialized and collections ready.');
+}
+
+export async function getDashboardData(period: 'today' | 'week' | 'month' | 'total') {
   try {
-    const columns = await db.all(`PRAGMA table_info(${tableName})`);
-    if (!columns.some((col: any) => col.name === columnName)) {
-      await db.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnDef}`);
-      console.log(`Column ${columnName} added to table ${tableName}.`);
+    const now = new Date();
+    let startDate: Date;
+
+    const query: any = {};
+
+    switch (period) {
+      case 'today':
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        query.fechaCreacion = { $gte: startDate.toISOString() };
+        break;
+      case 'week':
+        startDate = new Date(now.setDate(now.getDate() - now.getDay())); // Start of current week (Sunday)
+        query.fechaCreacion = { $gte: startDate.toISOString() };
+        break;
+      case 'month':
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        query.fechaCreacion = { $gte: startDate.toISOString() };
+        break;
+      case 'total':
+      default:
+        // No date query needed for total
+        break;
     }
+
+    const totalClients = await clientesCollection.countDocuments(query);
+    const totalAgents = await agentesCollection.countDocuments(query);
+    const totalAvisos = await avisosCollection.countDocuments(query);
+    const totalEnlaces = await enlacesCollection.countDocuments(query);
+
+    return {
+      totalClients,
+      totalAgents,
+      totalAvisos,
+      totalEnlaces,
+    };
   } catch (error) {
-    console.error(`Error adding column ${columnName} to ${tableName}:`, error);
+    console.error('Error fetching dashboard data:', error);
+    return {
+      totalClients: 0,
+      totalAgents: 0,
+      totalAvisos: 0,
+      totalEnlaces: 0,
+    };
   }
-}
-
-export async function initializeDatabase() {
-  const dbDir = path.dirname(DB_PATH);
-  if (!fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, { recursive: true });
-  }
-
-  const db = await open({
-    filename: DB_PATH,
-    driver: sqlite3.Database,
-  });
-
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS Clientes (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      nombreCompleto TEXT NOT NULL,
-      telefono TEXT,
-      estado TEXT,
-      compania TEXT,
-      estatus TEXT,
-      asesorId TEXT NOT NULL,
-      fechaCreacion TEXT,
-      updated_at DATETIME
-    );
-    CREATE TABLE IF NOT EXISTS Agentes (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      state TEXT,
-      company TEXT,
-      asesorId TEXT NOT NULL,
-      updated_at DATETIME
-    );
-    CREATE TABLE IF NOT EXISTS Avisos (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      clientId INTEGER,
-      note TEXT NOT NULL,
-      status TEXT,
-      creator TEXT,
-      recipient TEXT,
-      asesorId TEXT NOT NULL,
-      updated_at DATETIME,
-      FOREIGN KEY (clientId) REFERENCES Clientes(id)
-    );
-    CREATE TABLE IF NOT EXISTS Enlaces (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      url TEXT NOT NULL,
-      asesorId TEXT,
-      updated_at DATETIME
-    );
-    CREATE TABLE IF NOT EXISTS Usuarios (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      email TEXT NOT NULL UNIQUE,
-      password TEXT NOT NULL,
-      role TEXT NOT NULL,
-      status TEXT NOT NULL,
-      updated_at DATETIME
-    );
-  `);
-
-  await addColumn(db, 'Clientes', 'updated_at', 'DATETIME');
-  await addColumn(db, 'Agentes', 'updated_at', 'DATETIME');
-  await addColumn(db, 'Avisos', 'updated_at', 'DATETIME');
-  await addColumn(db, 'Enlaces', 'updated_at', 'DATETIME');
-  await addColumn(db, 'Usuarios', 'updated_at', 'DATETIME');
-
-  await seedDatabase(db);
-  console.log('Database initialized and schema verified.');
-  return db;
-}
-
-export async function getDashboardData(db: any, period: 'today' | 'week' | 'month' | 'total') {
-  // ...
 }
 
 // --- Clientes ---
-export async function getClientes(db: any, asesorId?: string) {
-  if (asesorId) {
-    return db.all('SELECT * FROM Clientes WHERE asesorId = ?', asesorId);
-  } else {
-    return db.all('SELECT * FROM Clientes');
+export async function getClientes(asesorId?: string) {
+  const query = asesorId ? { asesorId } : {};
+  return clientesCollection.find(query).toArray();
+}
+export async function getClienteById(id: string) {
+  try {
+    return clientesCollection.findOne({ _id: new ObjectId(id) });
+  } catch (error) {
+    console.error(`Error fetching client by ID ${id}:`, error);
+    return null;
   }
 }
-export async function getClienteById(db: any, id: number) {
-  return db.get('SELECT * FROM Clientes WHERE id = ?', id);
-}
-export async function addCliente(db: any, cliente: any) {
+export async function addCliente(cliente: any) {
   const { nombreCompleto, telefono, estado, compania, estatus, asesorId } = cliente;
-  const now = new Date().toISOString();
-  const result = await db.run(
-    'INSERT INTO Clientes (nombreCompleto, telefono, estado, compania, estatus, asesorId, fechaCreacion, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    nombreCompleto, telefono, estado, compania, estatus, asesorId, now, now
-  );
-  return result.lastID;
+  const now = new Date();
+  const result = await clientesCollection.insertOne({
+    nombreCompleto,
+    telefono,
+    estado,
+    compania,
+    estatus,
+    asesorId,
+    fechaCreacion: now.toISOString(),
+    updated_at: now.toISOString(),
+  });
+  return result.insertedId.toHexString();
 }
-export async function updateCliente(db: any, id: number, updates: any) {
-  const { nombreCompleto, telefono, estado, compania, estatus } = updates;
-  const now = new Date().toISOString();
-  await db.run(
-    'UPDATE Clientes SET nombreCompleto = ?, telefono = ?, estado = ?, compania = ?, estatus = ?, updated_at = ? WHERE id = ?',
-    nombreCompleto, telefono, estado, compania, estatus, now, id
-  );
+export async function updateCliente(id: string, updates: any) {
+  try {
+    const now = new Date().toISOString();
+    const updateDoc: any = {
+      $set: {
+        updated_at: now,
+      },
+    };
+
+    if (updates.nombreCompleto !== undefined) updateDoc.$set.nombreCompleto = updates.nombreCompleto;
+    if (updates.telefono !== undefined) updateDoc.$set.telefono = updates.telefono;
+    if (updates.estado !== undefined) updateDoc.$set.estado = updates.estado;
+    if (updates.compania !== undefined) updateDoc.$set.compania = updates.compania;
+    if (updates.estatus !== undefined) updateDoc.$set.estatus = updates.estatus;
+
+    await clientesCollection.updateOne(
+      { _id: new ObjectId(id) },
+      updateDoc
+    );
+  } catch (error) {
+    console.error(`Error updating client by ID ${id}:`, error);
+  }
 }
-export async function deleteCliente(db: any, id: number) {
-  await db.run('DELETE FROM Clientes WHERE id = ?', id);
+export async function deleteCliente(id: string) {
+  try {
+    await clientesCollection.deleteOne({ _id: new ObjectId(id) });
+  } catch (error) {
+    console.error(`Error deleting client by ID ${id}:`, error);
+  }
 }
 
 // --- Agentes ---
-export async function getAgentes(db: any, asesorId: string) {
-  return db.all('SELECT * FROM Agentes WHERE asesorId = ?', asesorId);
+export async function getAgentes(asesorId: string): Promise<any[]> {
+  return agentesCollection.find({ asesorId }).toArray();
 }
-export async function getAgenteById(db: any, id: number) {
-  return db.get('SELECT * FROM Agentes WHERE id = ?', id);
+export async function getAgenteById(id: string) {
+  try {
+    return agentesCollection.findOne({ _id: new ObjectId(id) });
+  } catch (error) {
+    console.error(`Error fetching agent by ID ${id}:`, error);
+    return null;
+  }
 }
-export async function addAgente(db: any, agente: any) {
+export async function addAgente(agente: any) {
   const { name, state, company, asesorId } = agente;
   const now = new Date().toISOString();
-  const result = await db.run(
-    'INSERT INTO Agentes (name, state, company, asesorId, updated_at) VALUES (?, ?, ?, ?, ?)',
-    name, state, company, asesorId, now
-  );
-  return result.lastID;
+  const result = await agentesCollection.insertOne({
+    name,
+    state,
+    company,
+    asesorId,
+    updated_at: now,
+  });
+  return result.insertedId.toHexString();
 }
-export async function updateAgente(db: any, id: number, updates: any) {
-  const { name, state, company } = updates;
-  const now = new Date().toISOString();
-  await db.run(
-    'UPDATE Agentes SET name = ?, state = ?, company = ?, updated_at = ? WHERE id = ?',
-    name, state, company, now, id
-  );
+export async function updateAgente(id: string, updates: any) {
+  try {
+    const now = new Date().toISOString();
+    const updateDoc: any = {
+      $set: {
+        updated_at: now,
+      },
+    };
+
+    if (updates.name !== undefined) updateDoc.$set.name = updates.name;
+    if (updates.state !== undefined) updateDoc.$set.state = updates.state;
+    if (updates.company !== undefined) updateDoc.$set.company = updates.company;
+
+    await agentesCollection.updateOne(
+      { _id: new ObjectId(id) },
+      updateDoc
+    );
+  } catch (error) {
+    console.error(`Error updating agent by ID ${id}:`, error);
+  }
 }
-export async function deleteAgente(db: any, id: number) {
-  await db.run('DELETE FROM Agentes WHERE id = ?', id);
+export async function deleteAgente(id: string) {
+  try {
+    await agentesCollection.deleteOne({ _id: new ObjectId(id) });
+  } catch (error) {
+    console.error(`Error deleting agent by ID ${id}:`, error);
+  }
 }
 
 // --- Avisos ---
-export async function getAvisos(db: any, user: { id: number; email: string; }) {
+export async function getAvisos(user: { id: string; email: string; }) {
   if (!user) return [];
-  return db.all('SELECT * FROM Avisos WHERE asesorId = ? OR recipient = ? OR recipient = "Todos"', user.id, user.email);
+  return avisosCollection.find({
+    $or: [
+      { asesorId: user.id }, // Assuming asesorId in Avisos collection is stored as string matching user.id
+      { recipient: user.email },
+      { recipient: 'Todos' }
+    ]
+  }).toArray();
 }
-export async function getAvisoById(db: any, id: number) {
-  return db.get('SELECT * FROM Avisos WHERE id = ?', id);
+export async function getAvisoById(id: string) {
+  try {
+    return avisosCollection.findOne({ _id: new ObjectId(id) });
+  } catch (error) {
+    console.error(`Error fetching aviso by ID ${id}:`, error);
+    return null;
+  }
 }
-export async function addAviso(db: any, aviso: any) {
-  const { clientId, note, status, creator, recipient, asesorId } = aviso;
-  const now = new Date().toISOString();
-  const result = await db.run(
-    'INSERT INTO Avisos (clientId, note, status, creator, recipient, asesorId, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    clientId, note, status, creator, recipient, asesorId, now
-  );
-  return result.lastID;
+export async function addAviso(aviso: any) {
+  try {
+    const { clientId, note, status, creator, recipient, asesorId } = aviso;
+    const now = new Date().toISOString();
+    const result = await avisosCollection.insertOne({
+      clientId: typeof clientId === 'string' ? new ObjectId(clientId) : clientId, // Convert to ObjectId if it's a string, otherwise keep as is
+      note,
+      status,
+      creator,
+      recipient,
+      asesorId,
+      updated_at: now,
+    });
+    return result.insertedId.toHexString();
+  } catch (error) {
+    console.error(`Error adding aviso:`, error);
+    return null;
+  }
 }
-export async function updateAviso(db: any, id: number, updates: any) {
-  const { clientId, note, status, creator, recipient } = updates;
-  const now = new Date().toISOString();
-  await db.run(
-    'UPDATE Avisos SET clientId = ?, note = ?, status = ?, creator = ?, recipient = ?, updated_at = ? WHERE id = ?',
-    clientId, note, status, creator, recipient, now, id
-  );
+export async function updateAviso(id: string, updates: any) {
+  try {
+    const now = new Date().toISOString();
+    const updateDoc: any = {
+      $set: {
+        updated_at: now,
+      },
+    };
+
+    if (updates.clientId !== undefined) {
+      updateDoc.$set.clientId = typeof updates.clientId === 'string' ? new ObjectId(updates.clientId) : updates.clientId;
+    }
+    if (updates.note !== undefined) updateDoc.$set.note = updates.note;
+    if (updates.status !== undefined) updateDoc.$set.status = updates.status;
+    if (updates.creator !== undefined) updateDoc.$set.creator = updates.creator;
+    if (updates.recipient !== undefined) updateDoc.$set.recipient = updates.recipient;
+
+    await avisosCollection.updateOne(
+      { _id: new ObjectId(id) },
+      updateDoc
+    );
+  } catch (error) {
+    console.error(`Error updating aviso by ID ${id}:`, error);
+  }
 }
-export async function deleteAviso(db: any, id: number) {
-  await db.run('DELETE FROM Avisos WHERE id = ?', id);
+export async function deleteAviso(id: string) {
+  try {
+    await avisosCollection.deleteOne({ _id: new ObjectId(id) });
+  } catch (error) {
+    console.error(`Error deleting aviso by ID ${id}:`, error);
+  }
 }
 
 // --- Enlaces ---
-export async function getEnlaces(db: any, asesorId: string) {
-  return db.all('SELECT * FROM Enlaces WHERE asesorId = ? OR asesorId IS NULL', asesorId);
+export async function getEnlaces(asesorId: string): Promise<any[]> {
+  return enlacesCollection.find({
+    $or: [
+      { asesorId: asesorId },
+      { asesorId: { $exists: false } } // Handles IS NULL equivalent in MongoDB
+    ]
+  }).toArray();
 }
-export async function getEnlaceById(db: any, id: number) {
-  return db.get('SELECT * FROM Enlaces WHERE id = ?', id);
+export async function getEnlaceById(id: string) {
+  try {
+    return enlacesCollection.findOne({ _id: new ObjectId(id) });
+  } catch (error) {
+    console.error(`Error fetching enlace by ID ${id}:`, error);
+    return null;
+  }
 }
-export async function addEnlace(db: any, enlace: any) {
-  const { name, url, asesorId } = enlace;
-  const now = new Date().toISOString();
-  const result = await db.run(
-    'INSERT INTO Enlaces (name, url, asesorId, updated_at) VALUES (?, ?, ?, ?)',
-    name, url, asesorId, now
-  );
-  return result.lastID;
+export async function addEnlace(enlace: any) {
+  try {
+    const { name, url, asesorId } = enlace;
+    const now = new Date().toISOString();
+    const result = await enlacesCollection.insertOne({
+      name,
+      url,
+      asesorId,
+      updated_at: now,
+    });
+    return result.insertedId.toHexString();
+  } catch (error) {
+    console.error(`Error adding enlace:`, error);
+    return null;
+  }
 }
-export async function updateEnlace(db: any, id: number, updates: any) {
-  const { name, url } = updates;
-  const now = new Date().toISOString();
-  await db.run(
-    'UPDATE Enlaces SET name = ?, url = ?, updated_at = ? WHERE id = ?',
-    name, url, now, id
-  );
+export async function updateEnlace(id: string, updates: any) {
+  try {
+    const now = new Date().toISOString();
+    const updateDoc: any = {
+      $set: {
+        updated_at: now,
+      },
+    };
+
+    if (updates.name !== undefined) updateDoc.$set.name = updates.name;
+    if (updates.url !== undefined) updateDoc.$set.url = updates.url;
+
+    await enlacesCollection.updateOne(
+      { _id: new ObjectId(id) },
+      updateDoc
+    );
+  } catch (error) {
+    console.error(`Error updating enlace by ID ${id}:`, error);
+  }
 }
-export async function deleteEnlace(db: any, id: number) {
-  await db.run('DELETE FROM Enlaces WHERE id = ?', id);
+export async function deleteEnlace(id: string) {
+  try {
+    await enlacesCollection.deleteOne({ _id: new ObjectId(id) });
+  } catch (error) {
+    console.error(`Error deleting enlace by ID ${id}:`, error);
+  }
 }
 
 // --- Usuarios ---
-export async function getUsuarios(db: any) {
-  return db.all('SELECT id, name, email, role, status, updated_at FROM Usuarios');
+export async function getUsuarios(): Promise<any[]> {
+  const users = await usuariosCollection.find({}, { projection: { password: 0 } }).toArray();
+  return users.map(user => {
+    const { _id, ...rest } = user;
+    return { id: _id.toHexString(), ...rest };
+  });
 }
-export async function getUsuarioByEmail(db: any, email: string) {
-  return db.get('SELECT * FROM Usuarios WHERE email = ?', email);
-}
-export async function getUsuarioById(db: any, id: number) {
-  return db.get('SELECT * FROM Usuarios WHERE id = ?', id);
-}
-export async function addUsuario(db: any, usuario: any) {
-  const { name, email, password, role, status } = usuario;
-  const saltRounds = 10;
-  const hashedPassword = await bcrypt.hash(password, saltRounds);
-  const now = new Date().toISOString();
-  const result = await db.run(
-    'INSERT INTO Usuarios (name, email, password, role, status, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
-    name, email, hashedPassword, role, status, now
-  );
-  return db.get('SELECT id, name, email, role, status, updated_at FROM Usuarios WHERE id = ?', result.lastID);
-}
-export async function updateUsuario(db: any, id: number, updates: any) {
-  const fields = [];
-  const params = [];
-
-  for (const [key, value] of Object.entries(updates)) {
-    if (value === undefined || key === 'id' || key === 'email') continue;
-    if (key === 'password') {
-      if (value) {
-        const saltRounds = 10;
-        const hashedPassword = await bcrypt.hash(value as string, saltRounds);
-        fields.push('password = ?');
-        params.push(hashedPassword);
-      }
-    } else {
-      fields.push(`${key} = ?`);
-      params.push(value);
-    }
+export async function getUsuarioByEmail(email: string) {
+  try {
+    return usuariosCollection.findOne({ email });
+  } catch (error) {
+    console.error(`Error fetching user by email ${email}:`, error);
+    return null;
   }
-
-  if (fields.length === 0) return;
-
-  fields.push('updated_at = ?');
-  params.push(new Date().toISOString());
-
-  params.push(id);
-  const sql = `UPDATE Usuarios SET ${fields.join(', ')} WHERE id = ?`;
-  await db.run(sql, ...params);
 }
-export async function deleteUsuario(db: any, id: number) {
-  await db.run('DELETE FROM Usuarios WHERE id = ?', id);
+export async function getUsuarioById(id: string) {
+  try {
+    return usuariosCollection.findOne({ _id: new ObjectId(id) });
+  } catch (error) {
+    console.error(`Error fetching user by ID ${id}:`, error);
+    return null;
+  }
+}
+export async function addUsuario(usuario: any) {
+  try {
+    const { name, email, password, role, status } = usuario;
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    const now = new Date().toISOString();
+    const result = await usuariosCollection.insertOne({
+      name,
+      email,
+      password: hashedPassword,
+      role,
+      status,
+      updated_at: now,
+    });
+    // Return the inserted user, transforming _id to id and excluding password
+    const newUser = await usuariosCollection.findOne({ _id: result.insertedId }, { projection: { password: 0 } });
+    if (newUser) {
+      const { _id, ...rest } = newUser;
+      return { id: _id.toHexString(), ...rest };
+    }
+    return null;
+  } catch (error) {
+    console.error(`Error adding user:`, error);
+    return null;
+  }
+}
+export async function updateUsuario(id: string, updates: any) {
+  try {
+    const now = new Date().toISOString();
+    const updateDoc: any = {
+      $set: {
+        updated_at: now,
+      },
+    };
+
+    for (const [key, value] of Object.entries(updates)) {
+      if (value === undefined || key === 'id' || key === 'email') continue;
+      if (key === 'password') {
+        if (value) {
+          const saltRounds = 10;
+          updateDoc.$set.password = await bcrypt.hash(value as string, saltRounds);
+        }
+      } else {
+        updateDoc.$set[key] = value;
+      }
+    }
+
+    await usuariosCollection.updateOne(
+      { _id: new ObjectId(id) },
+      updateDoc
+    );
+  } catch (error) {
+    console.error(`Error updating user by ID ${id}:`, error);
+  }
+}
+export async function deleteUsuario(id: string) {
+  try {
+    await usuariosCollection.deleteOne({ _id: new ObjectId(id) });
+  } catch (error) {
+    console.error(`Error deleting user by ID ${id}:`, error);
+  }
 }
 
 // --- Sync ---
-export async function getAllSyncData(db: any) {
-  const clientes = await db.all('SELECT * FROM Clientes');
-  const agentes = await db.all('SELECT * FROM Agentes');
-  const avisos = await db.all('SELECT * FROM Avisos');
-  const enlaces = await db.all('SELECT * FROM Enlaces');
-  const usuarios = await db.all('SELECT * FROM Usuarios');
-  return { clientes, agentes, avisos, enlaces, usuarios };
+export async function getAllSyncData() {
+  try {
+    const clientes = await clientesCollection.find({}).toArray();
+    const agentes = await agentesCollection.find({}).toArray();
+    const avisos = await avisosCollection.find({}).toArray();
+    const enlaces = await enlacesCollection.find({}).toArray();
+    const usersRaw = await usuariosCollection.find({}, { projection: { password: 0 } }).toArray();
+
+    const usuarios = usersRaw.map(user => {
+      const { _id, ...rest } = user;
+      return { id: _id.toHexString(), ...rest };
+    });
+
+    return { clientes, agentes, avisos, enlaces, usuarios };
+  } catch (error) {
+    console.error('Error fetching all sync data:', error);
+    return { clientes: [], agentes: [], avisos: [], enlaces: [], usuarios: [] };
+  }
 }

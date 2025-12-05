@@ -13,8 +13,6 @@ import {
 } from './database';
 import { startP2PServer } from './p2p';
 
-let db: any; // Declare a variable to hold the database instance
-
 // The built directory structure
 //
 // ├─┬─┬ dist
@@ -31,7 +29,7 @@ let win: BrowserWindow | null;
 // 🚧 Use ['ENV_NAME'] avoid vite:define plugin - Vite@2.x
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'];
 
-function createWindow() {
+const createWindow = () => {
   win = new BrowserWindow({
     icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
     webPreferences: {
@@ -42,7 +40,7 @@ function createWindow() {
     },
   });
 
-  // Test active push message to Renderer-process.
+  // Test active push message to Renderer-Process.
   win.webContents.on('did-finish-load', () => {
     win?.webContents.send('main-process-message', (new Date).toLocaleString());
   });
@@ -75,17 +73,15 @@ app.on('activate', () => {
 });
 
 app.whenReady().then(async () => {
-  db = await initializeDatabase();
+  await initializeDatabase();
   createWindow();
 
-  if (win) {
-    startP2PServer(win, db);
-  }
+  startP2PServer(win);
 
   // IPC Main handler for Login
   ipcMain.handle('login', async (event, { email, password }) => {
     try {
-      const user = await getUsuarioByEmail(db, email);
+      const user = await getUsuarioByEmail(email);
       if (!user) {
         return { success: false, message: 'El correo electrónico no está registrado.' };
       }
@@ -96,8 +92,9 @@ app.whenReady().then(async () => {
       }
 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { password: _, ...userWithoutPassword } = user;
-      return { success: true, user: userWithoutPassword };
+      const { password: _, _id, ...userWithoutPassword } = user;
+      const userToFrontend = { ...userWithoutPassword, id: _id.toHexString() };
+      return { success: true, user: userToFrontend };
       
     } catch (error) {
       console.error('Login error:', error);
@@ -106,37 +103,37 @@ app.whenReady().then(async () => {
   });
 
   // IPC Main handlers for Client operations
-  ipcMain.handle('get-clientes', async (event, asesorId) => getClientes(db, asesorId));
-  ipcMain.handle('get-cliente-by-id', async (event, id) => getClienteById(db, id));
-  ipcMain.handle('add-cliente', async (event, cliente) => addCliente(db, cliente));
-  ipcMain.handle('update-cliente', async (event, id, updates) => updateCliente(db, id, updates));
-  ipcMain.handle('delete-cliente', async (event, id) => deleteCliente(db, id));
+  ipcMain.handle('get-clientes', async (event, asesorId) => getClientes( asesorId));
+  ipcMain.handle('get-cliente-by-id', async (event, id) => getClienteById(id));
+  ipcMain.handle('add-cliente', async (event, cliente) => addCliente(cliente));
+  ipcMain.handle('update-cliente', async (event, id, updates) => updateCliente(id, updates));
+  ipcMain.handle('delete-cliente', async (event, id) => deleteCliente(id));
 
   // IPC Main handlers for Agentes operations
-  ipcMain.handle('get-agentes', async (event, asesorId) => getAgentes(db, asesorId));
-  ipcMain.handle('get-agente-by-id', async (event, id) => getAgenteById(db, id));
-  ipcMain.handle('add-agente', async (event, agente) => addAgente(db, agente));
-  ipcMain.handle('update-agente', async (event, id, updates) => updateAgente(db, id, updates));
-  ipcMain.handle('delete-agente', async (event, id) => deleteAgente(db, id));
+  ipcMain.handle('get-agentes', async (event, asesorId) => getAgentes(asesorId));
+  ipcMain.handle('get-agente-by-id', async (event, id) => getAgenteById(id));
+  ipcMain.handle('add-agente', async (event, agente) => addAgente(agente));
+  ipcMain.handle('update-agente', async (event, id, updates) => updateAgente(id, updates));
+  ipcMain.handle('delete-agente', async (event, id) => deleteAgente(id));
 
   // IPC Main handlers for Avisos operations
-  ipcMain.handle('get-avisos', async (event, user) => getAvisos(db, user));
-  ipcMain.handle('get-aviso-by-id', async (event, id) => getAvisoById(db, id));
-  ipcMain.handle('add-aviso', async (event, aviso) => addAviso(db, aviso));
-  ipcMain.handle('update-aviso', async (event, id, updates) => updateAviso(db, id, updates));
-  ipcMain.handle('delete-aviso', async (event, id) => deleteAviso(db, id));
+  ipcMain.handle('get-avisos', async (event, user) => getAvisos(user));
+  ipcMain.handle('get-aviso-by-id', async (event, id) => getAvisoById(id));
+  ipcMain.handle('add-aviso', async (event, aviso) => addAviso(aviso));
+  ipcMain.handle('update-aviso', async (event, id, updates) => updateAviso(id, updates));
+  ipcMain.handle('delete-aviso', async (event, id) => deleteAviso(id));
 
   // IPC Main handlers for Enlaces operations
-  ipcMain.handle('get-enlaces', async (event, asesorId) => getEnlaces(db, asesorId));
-  ipcMain.handle('get-enlace-by-id', async (event, id) => getEnlaceById(db, id));
-  ipcMain.handle('add-enlace', async (event, enlace) => addEnlace(db, enlace));
-  ipcMain.handle('update-enlace', async (event, id, updates) => updateEnlace(db, id, updates));
-  ipcMain.handle('delete-enlace', async (event, id) => deleteEnlace(db, id));
+  ipcMain.handle('get-enlaces', async (event, asesorId) => getEnlaces(asesorId));
+  ipcMain.handle('get-enlace-by-id', async (event, id) => getEnlaceById(id));
+  ipcMain.handle('add-enlace', async (event, enlace) => addEnlace(enlace));
+  ipcMain.handle('update-enlace', async (event, id, updates) => updateEnlace(id, updates));
+  ipcMain.handle('delete-enlace', async (event, id) => deleteEnlace(id));
 
   // IPC Main handler for Dashboard
   ipcMain.handle('get-dashboard-data', async (event, period) => {
     try {
-      const data = await getDashboardData(db, period);
+      const data = await getDashboardData(period);
       return { success: true, data };
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -145,15 +142,15 @@ app.whenReady().then(async () => {
   });
 
   // IPC Main handlers for Usuarios operations
-  ipcMain.handle('get-usuarios', async (event) => getUsuarios(db));
-  ipcMain.handle('get-usuario-by-id', async (event, id) => getUsuarioById(db, id));
+  ipcMain.handle('get-usuarios', async (event) => getUsuarios());
+  ipcMain.handle('get-usuario-by-id', async (event, id) => getUsuarioById(id));
   ipcMain.handle('add-usuario', async (event, usuario) => {
     try {
-      const existingUser = await getUsuarioByEmail(db, usuario.email);
+      const existingUser = await getUsuarioByEmail(usuario.email);
       if (existingUser) {
         return { success: false, message: 'El correo electrónico ya está registrado.' };
       }
-      const newUserId = await addUsuario(db, usuario);
+      const newUserId = await addUsuario(usuario);
       return { success: true, userId: newUserId };
     } catch (error) {
       console.error('Error adding user:', error);
@@ -161,9 +158,9 @@ app.whenReady().then(async () => {
     }
   });
 
-  ipcMain.handle('update-usuario', async (event, id, updates) => updateUsuario(db, id, updates));
+  ipcMain.handle('update-usuario', async (event, id, updates) => updateUsuario(id, updates));
 
-  ipcMain.handle('delete-usuario', async (event, id) => deleteUsuario(db, id));
+  ipcMain.handle('delete-usuario', async (event, id) => deleteUsuario(id));
 
   // IPC Main handler for saving avatar
   ipcMain.handle('save-avatar', async (event, filePath) => {

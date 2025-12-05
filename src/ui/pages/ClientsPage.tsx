@@ -56,6 +56,10 @@ const ClientsPage: React.FC = () => {
   const currentAsesorId = user?.id; // Use numeric ID
 
   const fetchClients = useCallback(async () => {
+    console.log('fetchClients: user', user);
+    console.log('fetchClients: isAdmin()', isAdmin());
+    console.log('fetchClients: currentAsesorId', currentAsesorId);
+
     if (!currentAsesorId) return;
 
     setLoading(true);
