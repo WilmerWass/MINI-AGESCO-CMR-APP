@@ -18,9 +18,11 @@ import {
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import WhatsAppIcon from '@mui/icons-material/WhatsApp';
+import { User } from '../users/UsersTable';
 
 export interface Client {
-  id: number;
+  id: string;
   nombreCompleto: string;
   telefono: string;
   estado: string;
@@ -28,6 +30,8 @@ export interface Client {
   estatus: string;
   asesorId: string;
   ultimaActualizacion: string;
+  lastGestionDate?: string; // Nuevo campo para la fecha de la última gestión
+  gestionStatus?: string;   // Nuevo campo para el estado de la gestión
 
   // Campos de información personal
   aplica?: string;
@@ -56,6 +60,7 @@ export interface Client {
   // Campos de seguimiento
   fechaVenta?: string;
   ultimoSeguimiento?: string;
+  fechaCreacion?: string;
   notas?: any[];
 }
 
@@ -64,13 +69,13 @@ interface ClientTableProps {
   users?: User[];
   onView: (client: Client) => void;
   onEdit: (client: Client) => void;
-  onDelete: (clientId: number) => void;
+  onDelete: (clientId: string) => void;
 }
 
 const ClientTable: React.FC<ClientTableProps> = ({ clients, users = [], onView, onEdit, onDelete }) => {
-  const [selectedClients, setSelectedClients] = useState<number[]>([]);
+  const [selectedClients, setSelectedClients] = useState<string[]>([]);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [menuClientId, setMenuClientId] = useState<number | null>(null);
+  const [menuClientId, setMenuClientId] = useState<string | null>(null);
   const userMap = new Map(users.map(u => [u.id, u.name]));
 
   const handleSelectAllClick = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,9 +87,9 @@ const ClientTable: React.FC<ClientTableProps> = ({ clients, users = [], onView, 
     setSelectedClients([]);
   };
 
-  const handleClick = (event: React.MouseEvent<unknown>, id: number) => {
+  const handleClick = (event: React.MouseEvent<unknown>, id: string) => {
     const selectedIndex = selectedClients.indexOf(id);
-    let newSelected: number[] = [];
+    let newSelected: string[] = [];
 
     if (selectedIndex === -1) {
       newSelected = newSelected.concat(selectedClients, id);
@@ -102,7 +107,7 @@ const ClientTable: React.FC<ClientTableProps> = ({ clients, users = [], onView, 
     setSelectedClients(newSelected);
   };
 
-  const handleMenuClick = (event: React.MouseEvent<HTMLElement>, clientId: number) => {
+  const handleMenuClick = (event: React.MouseEvent<HTMLElement>, clientId: string) => {
     setAnchorEl(event.currentTarget);
     setMenuClientId(clientId);
   };
@@ -123,7 +128,7 @@ const ClientTable: React.FC<ClientTableProps> = ({ clients, users = [], onView, 
       .catch(err => console.error('Error al copiar:', err));
   };
 
-  const isSelected = (id: number) => selectedClients.indexOf(id) !== -1;
+  const isSelected = (id: string) => selectedClients.indexOf(id) !== -1;
 
   return (
     <Box>
@@ -206,7 +211,23 @@ const ClientTable: React.FC<ClientTableProps> = ({ clients, users = [], onView, 
                       {client.nombreCompleto}
                     </Typography>
                   </TableCell>
-                  <TableCell>{client.telefono}</TableCell>
+                  <TableCell>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      {client.telefono}
+                      {client.telefono && (
+                        <IconButton
+                          size="small"
+                          color="success"
+                          onClick={() => {
+                            const cleanPhone = client.telefono.replace(/\D/g, '');
+                            window.open(`https://wa.me/${cleanPhone}`, '_blank');
+                          }}
+                        >
+                          <WhatsAppIcon fontSize="small" />
+                        </IconButton>
+                      )}
+                    </Box>
+                  </TableCell>
                   <TableCell>{client.estado}</TableCell>
                   <TableCell>{client.compania}</TableCell>
                   <TableCell>
@@ -225,7 +246,7 @@ const ClientTable: React.FC<ClientTableProps> = ({ clients, users = [], onView, 
                       {client.estatus}
                     </Box>
                   </TableCell>
-                  <TableCell>{userMap.get(parseInt(client.asesorId, 10)) || client.asesorId}</TableCell>
+                  <TableCell>{userMap.get(client.asesorId) || client.asesorId}</TableCell>
                   <TableCell>{client.ultimaActualizacion}</TableCell>
                   <TableCell>
                     <Button size="small" variant="outlined" sx={{ mr: 1 }} onClick={() => onView(client)}>Ver</Button>

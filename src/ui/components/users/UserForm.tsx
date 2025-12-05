@@ -13,14 +13,15 @@ import {
   Stack,
   FormControlLabel,
   Switch,
-  Alert
+  Alert,
+  SelectChangeEvent
 } from '@mui/material';
 import { User } from './UsersTable';
 
 interface UserFormProps {
   open: boolean;
   onClose: () => void;
-  onSave: (user: Partial<User> & { password?: string }, userId?: number) => void;
+  onSave: (user: Partial<User> & { password?: string }, userId?: string) => void;
   user: Partial<User> | null;
   mode: 'create' | 'edit';
 }
@@ -46,9 +47,9 @@ const UserForm: React.FC<UserFormProps> = ({ open, onClose, onSave, user, mode }
     setPasswordError('');
   }, [user, open]);
 
-  const handleChange = (e: React.ChangeEvent<any>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | SelectChangeEvent) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({ ...prev, [name as string]: value }));
   };
 
   const handleSave = () => {
@@ -57,10 +58,10 @@ const UserForm: React.FC<UserFormProps> = ({ open, onClose, onSave, user, mode }
       return;
     }
     if (password && password.length < 6) {
-        setPasswordError('La contraseña debe tener al menos 6 caracteres.');
-        return;
+      setPasswordError('La contraseña debe tener al menos 6 caracteres.');
+      return;
     }
-    
+
     const dataToSave: Partial<User> & { password?: string } = { ...formData };
     if (password) {
       dataToSave.password = password;
@@ -103,7 +104,7 @@ const UserForm: React.FC<UserFormProps> = ({ open, onClose, onSave, user, mode }
               <MenuItem value="admin">Administrador</MenuItem>
             </Select>
           </FormControl>
-           <FormControl fullWidth required>
+          <FormControl fullWidth required>
             <InputLabel>Estatus</InputLabel>
             <Select
               name="status"

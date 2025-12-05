@@ -28,11 +28,11 @@ import AddIcon from '@mui/icons-material/Add';
 import { useAuth } from '../contexts/AuthContext';
 
 interface Agent {
-  id: number;
+  id: string;
   name: string;
   state: string;
   company: string;
-  asesorId: number;
+  asesorId: string;
 }
 
 const AgentsPage: React.FC = () => {
@@ -44,7 +44,7 @@ const AgentsPage: React.FC = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [selectedAgent, setSelectedAgent] = useState<Partial<Agent> | null>(null);
-  
+
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false,
     message: '',
@@ -84,7 +84,7 @@ const AgentsPage: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm('¿Estás seguro de que deseas eliminar este agente?')) {
       try {
         await window.api.deleteAgente(id);
@@ -98,29 +98,29 @@ const AgentsPage: React.FC = () => {
 
   const handleSave = async () => {
     if (!selectedAgent || !selectedAgent.name || !selectedAgent.state || !selectedAgent.company || !currentAsesorId) {
-        setSnackbar({ open: true, message: '❌ Todos los campos son requeridos.', severity: 'error' });
-        return;
+      setSnackbar({ open: true, message: '❌ Todos los campos son requeridos.', severity: 'error' });
+      return;
     }
 
     try {
-        if (formMode === 'create') {
-            await window.api.addAgente({
-                name: selectedAgent.name,
-                state: selectedAgent.state,
-                company: selectedAgent.company,
-                asesorId: currentAsesorId,
-            });
-        } else if (selectedAgent.id) {
-            await window.api.updateAgente(selectedAgent.id, selectedAgent);
-        }
-        setSnackbar({ open: true, message: `✅ Agente ${formMode === 'create' ? 'creado' : 'actualizado'}.`, severity: 'success' });
-        setIsFormOpen(false);
-        fetchAgents();
+      if (formMode === 'create') {
+        await window.api.addAgente({
+          name: selectedAgent.name,
+          state: selectedAgent.state,
+          company: selectedAgent.company,
+          asesorId: currentAsesorId,
+        });
+      } else if (selectedAgent.id) {
+        await window.api.updateAgente(selectedAgent.id, selectedAgent);
+      }
+      setSnackbar({ open: true, message: `✅ Agente ${formMode === 'create' ? 'creado' : 'actualizado'}.`, severity: 'success' });
+      setIsFormOpen(false);
+      fetchAgents();
     } catch (err: any) {
-        setSnackbar({ open: true, message: `❌ Error al guardar agente: ${err.message}`, severity: 'error' });
+      setSnackbar({ open: true, message: `❌ Error al guardar agente: ${err.message}`, severity: 'error' });
     }
   };
-  
+
   if (loading) return <CircularProgress />;
   if (error) return <Alert severity="error">{error}</Alert>;
 
@@ -205,7 +205,7 @@ const AgentsPage: React.FC = () => {
           <Button onClick={handleSave} variant="contained">Guardar</Button>
         </DialogActions>
       </Dialog>
-      
+
       <Snackbar
         open={snackbar.open}
         autoHideDuration={4000}

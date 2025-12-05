@@ -64,3 +64,18 @@ El PDF muestra una interfaz de CRM muy completa, centrada en el resumen detallad
 *   Los "avisos" actuales podrían expandirse para incluir campos más estructurados como "Palabra Clave", "LINK", "ASESSOR" y "SUBIDA POR", según se ve en el PDF.
 
 Estas implementaciones se centrarían en enriquecer la información disponible por cliente y mejorar la gestión operativa del CRM.
+
+## Nuevas Ideas Propuestas (Visuales y Funcionales) - Fase 2
+
+### 8. Mejoras Visuales (UI/UX)
+*   **Dashboard Interactivo:** Implementar gráficos (barras, circulares) para visualizar KPIs (ej. ventas por mes, distribución por compañía).
+*   **Vista Kanban:** Visualización del flujo de ventas por columnas (Pendiente -> En Proceso -> Cerrado).
+*   **Línea de Tiempo (Activity Timeline):** Historial visual cronológico de todas las interacciones con el cliente.
+*   **Modo Oscuro:** Interruptor para cambiar el tema de la aplicación.
+
+### 9. Mejoras Funcionales Adicionales
+*   **Gestor Documental:** "Drag & Drop" para subir PDFs e imágenes directamente a la ficha del cliente.
+*   **Integración WhatsApp/Email:** Botones de acción rápida con plantillas predefinidas.
+*   **Sistema de Recordatorios:** Alertas automáticas para renovaciones y cumpleaños.
+*   **Papelera de Reciclaje:** Recuperación de clientes eliminados (30 días de gracia).
+

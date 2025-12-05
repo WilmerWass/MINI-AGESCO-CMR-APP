@@ -1,6 +1,6 @@
 {
   "name": "mini-agesco-cmr-pc-beta",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -25,6 +25,7 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.9.6",
+    "recharts": "^3.5.1",
     "sqlite": "^5.1.1"
   },
   "devDependencies": {

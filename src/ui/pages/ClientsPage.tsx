@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -17,6 +18,7 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import FilterAltOffIcon from '@mui/icons-material/FilterAltOff';
+import DownloadIcon from '@mui/icons-material/Download';
 import { useAuth } from '../contexts/AuthContext';
 import ClientTable, { Client } from '../components/clients/ClientTable';
 import ClientForm from '../components/clients/ClientForm';
@@ -34,6 +36,8 @@ const ClientsPage: React.FC = () => {
   const [filterCompania, setFilterCompania] = useState('');
   const [filterAsesor, setFilterAsesor] = useState(''); // This will be an ID
   const [filterEstatus, setFilterEstatus] = useState('');
+  const [filterDateStart, setFilterDateStart] = useState('');
+  const [filterDateEnd, setFilterDateEnd] = useState('');
 
   // Form state
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -56,10 +60,6 @@ const ClientsPage: React.FC = () => {
   const currentAsesorId = user?.id; // Use numeric ID
 
   const fetchClients = useCallback(async () => {
-    console.log('fetchClients: user', user);
-    console.log('fetchClients: isAdmin()', isAdmin());
-    console.log('fetchClients: currentAsesorId', currentAsesorId);
-
     if (!currentAsesorId) return;
 
     setLoading(true);
@@ -92,6 +92,19 @@ const ClientsPage: React.FC = () => {
     fetchClients();
   }, [fetchClients]);
 
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state && location.state.openClientId && clients.length > 0) {
+      const clientToOpen = clients.find(c => c.id === location.state.openClientId);
+      if (clientToOpen) {
+        handleViewClick(clientToOpen);
+        // Clear state to prevent reopening on generic re-renders
+        window.history.replaceState({}, document.title);
+      }
+    }
+  }, [clients, location.state]);
+
   const handleAddClick = () => {
     setSelectedClient(null);
     setFormMode('create');
@@ -110,7 +123,7 @@ const ClientsPage: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  const handleDeleteClick = async (clientId: number) => {
+  const handleDeleteClick = async (clientId: string) => {
     if (window.confirm('¿Estás seguro de que deseas eliminar este cliente?')) {
       try {
         await window.api.deleteCliente(clientId);
@@ -171,12 +184,14 @@ const ClientsPage: React.FC = () => {
     setFilterCompania('');
     setFilterAsesor('');
     setFilterEstatus('');
+    setFilterDateStart('');
+    setFilterDateEnd('');
   };
 
   const uniqueEstados = Array.from(new Set(clients.map(c => c.estado).filter(Boolean)));
   const uniqueCompanias = Array.from(new Set(clients.map(c => c.compania).filter(Boolean)));
   const uniqueEstatus = Array.from(new Set(clients.map(c => c.estatus).filter(Boolean)));
-  
+
   const filteredClients = clients.filter(client => {
     const matchesText = client.nombreCompleto.toLowerCase().includes(filterText.toLowerCase()) ||
       (client.telefono && client.telefono.toLowerCase().includes(filterText.toLowerCase()));
@@ -185,8 +200,51 @@ const ClientsPage: React.FC = () => {
     const matchesAsesor = filterAsesor === '' || client.asesorId === filterAsesor;
     const matchesEstatus = filterEstatus === '' || client.estatus === filterEstatus;
 
-    return matchesText && matchesEstado && matchesCompania && matchesAsesor && matchesEstatus;
+    let matchesDate = true;
+    if (filterDateStart || filterDateEnd) {
+      const clientDate = client.fechaCreacion ? new Date(client.fechaCreacion) : null;
+      if (clientDate) {
+        if (filterDateStart && new Date(filterDateStart) > clientDate) matchesDate = false;
+        if (filterDateEnd) {
+          const endDate = new Date(filterDateEnd);
+          endDate.setHours(23, 59, 59, 999);
+          if (endDate < clientDate) matchesDate = false;
+        }
+      }
+    }
+
+    return matchesText && matchesEstado && matchesCompania && matchesAsesor && matchesEstatus && matchesDate;
   });
+
+  const handleExportCSV = () => {
+    if (filteredClients.length === 0) {
+      setSnackbar({ open: true, message: 'No hay datos para exportar', severity: 'warning' });
+      return;
+    }
+    const headers = ['ID', 'Nombre Completo', 'Teléfono', 'Estado', 'Compañía', 'Estatus', 'Fecha Creación', 'Asesor ID'];
+    const csvContent = [
+      headers.join(','),
+      ...filteredClients.map(c => [
+        c.id,
+        `"${c.nombreCompleto}"`,
+        c.telefono || '',
+        c.estado || '',
+        c.compania || '',
+        c.estatus || '',
+        c.fechaCreacion || '',
+        c.asesorId || ''
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `clientes_export_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   if (loading) {
     return <CircularProgress />;
@@ -198,14 +256,23 @@ const ClientsPage: React.FC = () => {
         <Typography variant="h4">
           Gestión de Clientes
         </Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
-          onClick={handleAddClick}
-        >
-          Añadir Cliente
-        </Button>
+        <Stack direction="row" spacing={2}>
+          <Button
+            variant="outlined"
+            startIcon={<DownloadIcon />}
+            onClick={handleExportCSV}
+          >
+            Exportar CSV
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<AddIcon />}
+            onClick={handleAddClick}
+          >
+            Añadir Cliente
+          </Button>
+        </Stack>
       </Box>
 
       <Card sx={{ mb: 3, backgroundColor: 'var(--card)' }}>
@@ -257,6 +324,30 @@ const ClientsPage: React.FC = () => {
                 </Select>
               </FormControl>
             </Box>
+
+            <Box sx={{ minWidth: 150 }}>
+              <TextField
+                label="Desde"
+                type="date"
+                size="small"
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                value={filterDateStart}
+                onChange={(e) => setFilterDateStart(e.target.value)}
+              />
+            </Box>
+            <Box sx={{ minWidth: 150 }}>
+              <TextField
+                label="Hasta"
+                type="date"
+                size="small"
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                value={filterDateEnd}
+                onChange={(e) => setFilterDateEnd(e.target.value)}
+              />
+            </Box>
+
             <Box sx={{ minWidth: 120 }}>
               <Button fullWidth variant="outlined" startIcon={<FilterAltOffIcon />} onClick={handleClearFilters}>
                 Limpiar

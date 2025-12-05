@@ -59,7 +59,7 @@ const UsersPage: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  const handleDeleteClick = async (userId: number) => {
+  const handleDeleteClick = async (userId: string) => {
     if (currentUser?.id === userId) {
       setSnackbar({ open: true, message: 'No puedes eliminar tu propia cuenta.', severity: 'error' });
       return;
@@ -75,12 +75,12 @@ const UsersPage: React.FC = () => {
     }
   };
 
-  const handleSaveUser = async (userData: Partial<User> & { password?: string }, userId?: number) => {
+  const handleSaveUser = async (userData: Partial<User> & { password?: string }, userId?: string) => {
     try {
       if (formMode === 'create') {
         const result = await window.api.addUsuario(userData);
         if (!result) { // Assuming the backend now returns the created user or null on failure
-            throw new Error("La creación del usuario falló.");
+          throw new Error("La creación del usuario falló.");
         }
       } else if (userId) {
         await window.api.updateUsuario(userId, userData);
@@ -122,7 +122,7 @@ const UsersPage: React.FC = () => {
           Añadir Usuario
         </Button>
       </Box>
-      <UsersTable users={users} currentUser={currentUser} onEdit={handleEditClick} onDelete={handleDeleteClick} />
+      <UsersTable users={users} currentUser={currentUser as User | null} onEdit={handleEditClick} onDelete={handleDeleteClick} />
       <UserForm
         open={isFormOpen}
         onClose={() => setIsFormOpen(false)}

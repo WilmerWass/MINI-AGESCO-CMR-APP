@@ -85,7 +85,7 @@ app.whenReady().then(async () => {
       if (!user) {
         return { success: false, message: 'El correo electrónico no está registrado.' };
       }
-      
+
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
         return { success: false, message: 'La contraseña es incorrecta.' };
@@ -95,7 +95,7 @@ app.whenReady().then(async () => {
       const { password: _, _id, ...userWithoutPassword } = user;
       const userToFrontend = { ...userWithoutPassword, id: _id.toHexString() };
       return { success: true, user: userToFrontend };
-      
+
     } catch (error) {
       console.error('Login error:', error);
       return { success: false, message: `Error en el inicio de sesión: ${error.message}` };
@@ -103,7 +103,7 @@ app.whenReady().then(async () => {
   });
 
   // IPC Main handlers for Client operations
-  ipcMain.handle('get-clientes', async (event, asesorId) => getClientes( asesorId));
+  ipcMain.handle('get-clientes', async (event, asesorId) => getClientes(asesorId));
   ipcMain.handle('get-cliente-by-id', async (event, id) => getClienteById(id));
   ipcMain.handle('add-cliente', async (event, cliente) => addCliente(cliente));
   ipcMain.handle('update-cliente', async (event, id, updates) => updateCliente(id, updates));
@@ -148,13 +148,13 @@ app.whenReady().then(async () => {
     try {
       const existingUser = await getUsuarioByEmail(usuario.email);
       if (existingUser) {
-        return { success: false, message: 'El correo electrónico ya está registrado.' };
+        return null;
       }
-      const newUserId = await addUsuario(usuario);
-      return { success: true, userId: newUserId };
+      const newUser = await addUsuario(usuario);
+      return newUser;
     } catch (error) {
       console.error('Error adding user:', error);
-      return { success: false, message: `No se pudo crear el usuario: ${error.message}` };
+      return null;
     }
   });
 

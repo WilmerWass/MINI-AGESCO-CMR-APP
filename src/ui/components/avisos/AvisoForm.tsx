@@ -18,13 +18,13 @@ import { useAuth } from '../../contexts/AuthContext';
 import { User } from '../users/UsersTable';
 
 export interface Aviso {
-  id?: number;
-  clientId: number | null;
+  id?: string;
+  clientId: string | null;
   note: string;
   status: 'Pendiente' | 'Visto';
   creator: string;
   recipient: string;
-  asesorId: number;
+  asesorId: string;
 }
 
 interface AvisoFormProps {
@@ -42,7 +42,7 @@ const AvisoForm: React.FC<AvisoFormProps> = ({ open, onClose, onSave }) => {
   const [users, setUsers] = useState<User[]>([]);
 
   const { user, isAdmin } = useAuth();
-  
+
   useEffect(() => {
     const fetchData = async () => {
       if (open && user) {

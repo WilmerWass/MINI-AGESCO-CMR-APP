@@ -8,9 +8,9 @@
  * @param peerRecords The array of records received from the peer.
  */
 async function syncTable(
-  localGetByIdFn: (id: number) => Promise<any | null>,
-  localUpdateFn: (id: number, data: any) => Promise<void>,
-  localAddFn: (data: any) => Promise<number>,
+  localGetByIdFn: (id: string) => Promise<any | null>,
+  localUpdateFn: (id: string, data: any) => Promise<void>,
+  localAddFn: (data: any) => Promise<any>,
   peerRecords: any[]
 ) {
   if (!peerRecords || !Array.isArray(peerRecords)) {

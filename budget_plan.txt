@@ -1,0 +1,86 @@
+# Plan de Inversión y Mantenimiento para CRM Web (Hostinger - MySQL/Node.js)
+
+Este documento detalla los puntos clave a considerar para calcular el presupuesto de desarrollo, implementación y mantenimiento mensual del CRM, asumiendo la migración a una aplicación web completa alojada en Hostinger con backend Node.js y base de datos MySQL/MariaDB.
+
+## Fase 1: Conversión y Configuración Inicial (Inversión Única)
+
+Esta fase implica el trabajo de adaptar el proyecto actual de Electron a una aplicación web completa con un nuevo stack de base de datos.
+
+### 1. Refactorización del Backend (Esfuerzo Mayor)
+   - **Tarea:** Convertir la lógica del proceso principal de Electron a un servidor Node.js/Express.js.
+   - **Detalles:**
+     - Creación de un proyecto Express.js.
+     - **Reescritura completa de todas las funciones de interacción con la base de datos** (`addCliente`, `updateCliente`, `getUsuarios`, etc.) para usar MySQL/MariaDB en lugar de MongoDB. Esto implica usar un driver MySQL para Node.js (ej. `mysql2`, `sequelize`, `knex`).
+     - Diseño y creación del esquema de la base de datos relacional (tablas, campos, relaciones, claves primarias) para Clientes, Agentes, Avisos, Enlaces, Usuarios, etc.
+     - Implementación de todos los endpoints de la API REST (ej. `/api/clientes`, `/api/login`) para que el frontend pueda interactuar con el backend.
+     - Implementación de la lógica de autenticación (ej. JWT o sesiones).
+   - **Tiempo Estimado:** Alta complejidad, dependiente del tamaño de la aplicación.
+
+### 2. Refactorización del Frontend (Esfuerzo Medio)
+   - **Tarea:** Adaptar el frontend de React para comunicarse con la nueva API REST.
+   - **Detalles:**
+     - Reemplazar todas las llamadas `window.api.xyz()` por llamadas `fetch` o Axios a los nuevos endpoints de la API del backend.
+     - **¡Muy Importante! Revertir los tipos de ID:** Cambiar la definición de `id` de `string` a `number` en todas las interfaces de datos del frontend (ej. `User`, `Client` en `AuthContext.tsx`, `ClientTable.tsx`, etc.). Esto es porque MySQL/MariaDB usa IDs numéricos.
+     - Ajustar cualquier lógica del frontend que esperara `ObjectId` (cadenas) a IDs numéricos.
+   - **Tiempo Estimado:** Media complejidad, dependiente del número de llamadas a la API y componentes afectados por el cambio de tipo de ID.
+
+### 3. Implementación de Funcionalidades de Gestión de Clientes (Esfuerzo Medio)
+   - **Tarea:** Ajustar el sistema de gestión de clientes para los nuevos campos y la nueva base de datos.
+   - **Detalles:**
+     - Asegurar que `lastGestionDate` y `gestionStatus` se guarden y recuperen correctamente de MySQL.
+     - Adaptar la UI si fuera necesario para estos campos.
+   - **Tiempo Estimado:** Ya se ha avanzado en el frontend. Faltaría la implementación específica para MySQL.
+
+### 4. Configuración y Despliegue en Hostinger (Esfuerzo Bajo-Medio)
+   - **Tarea:** Preparar el entorno de Hostinger y desplegar la aplicación.
+   - **Detalles:**
+     - Contratación y configuración del plan de hosting adecuado (que soporte Node.js y MySQL/MariaDB).
+     - Configuración de la base de datos MySQL/MariaDB en Hostinger.
+     - Despliegue del backend de Node.js.
+     - Despliegue de los archivos estáticos del frontend React.
+     - Configuración del dominio y certificado SSL.
+   - **Tiempo Estimado:** Bajo a medio, si se tienen los conocimientos.
+
+### 5. Pruebas Completas (Esfuerzo Alto)
+   - **Tarea:** Probar exhaustivamente toda la aplicación en el entorno web.
+   - **Detalles:**
+     - Pruebas de todas las funcionalidades (CRUD, autenticación, gestión de clientes).
+     - Pruebas de integración entre frontend y backend.
+     - Pruebas de rendimiento y seguridad.
+   - **Tiempo Estimado:** Alto, es crucial para la estabilidad.
+
+## Fase 2: Costos Recurrentes y Mantenimiento Mensual/Anual
+
+Estos son los costos que se necesitarán para mantener la aplicación operativa y en desarrollo.
+
+### 1. Costos de Infraestructura (Mensual/Anual)
+   - **Hosting Web (Hostinger):** Costo mensual/anual del plan elegido (considerar un plan que soporte Node.js y MySQL).
+   - **Nombre de Dominio:** Costo anual de registro del dominio (ej. `.com`, `.net`).
+   - **Certificado SSL:** Generalmente incluido gratis con Hostinger (Let's Encrypt), pero si no, un costo anual.
+
+### 2. Mantenimiento y Desarrollo (Tu Tiempo / Tarifa por Hora)
+   - **Soporte Técnico a Usuarios:** Resolver dudas y problemas de los asesores.
+   - **Corrección de Errores (Bugs):** Arreglar cualquier problema que surja en la aplicación.
+   - **Actualizaciones de Seguridad y Librerías:** Mantener el backend (Node.js, Express, drivers MySQL) y el frontend (React, Material-UI) actualizados con las últimas versiones y parches de seguridad.
+   - **Monitorización:** Asegurar que el servidor y la aplicación estén funcionando correctamente (ej. que no se caiga, que la base de datos responda).
+   - **Gestión de Backups:** Realizar copias de seguridad periódicas de la base de datos.
+   - **Implementación de Nuevas Funcionalidades:** Desarrollar las mejoras y nuevas características del CRM que tu jefa solicite. Esto es "mejorar el CRM".
+
+### 3. Recuperación de la Inversión y Ganancias (Estrategia de Precios)
+   - **Calcula tu Inversión Inicial:** Suma el tiempo estimado para la Fase 1 (conversión y configuración) multiplicado por tu tarifa horaria, más cualquier costo de software/licencias que pudieras necesitar.
+   - **Calcula tus Costos Operativos Mensuales:** Suma los costos de infraestructura mensuales + el tiempo estimado de mantenimiento mensual (ej. X horas al mes para soporte, corrección de bugs, pequeñas mejoras) multiplicado por tu tarifa horaria.
+   - **Define un Margen de Beneficio:** Decide cuánto quieres ganar sobre tus costos.
+   - **Propuesta de Tarifa Mensual:** Puedes proponer una tarifa fija mensual por el servicio completo (hosting, mantenimiento, soporte, desarrollo continuo). Considera si será una tarifa por empresa o por número de asesores.
+
+## Resumen de Pasos a Seguir para la Conversión
+
+1.  **Diseño de Esquema MySQL:** Traducir tus colecciones actuales de MongoDB a tablas MySQL.
+2.  **Configuración de Backend Node.js/Express:** Crear la estructura del proyecto.
+3.  **Reescritura de la Capa de Acceso a Datos:** Sustituir todas las operaciones de MongoDB por consultas MySQL.
+4.  **Deshacer cambios de `id: string` a `id: number` en Frontend:** Ajustar las interfaces y el código de React.
+5.  **Adaptación de Llamadas de API en Frontend:** Reemplazar `window.api` por llamadas HTTP a tu nuevo backend.
+6.  **Despliegue y Pruebas.**
+
+---
+
+Este documento te da una base sólida para discutir el presupuesto y el plan con tu jefa. ¡Mucho éxito!

@@ -28,6 +28,34 @@ async function seedDatabase() {
 
 
 
+// Migration function to Ensure asesorId is String
+async function migrateAsesorIds() {
+  const collections = [clientesCollection, agentesCollection, avisosCollection, enlacesCollection];
+  // Check if collections are initialized
+  if (!clientesCollection) return;
+
+  for (const collection of collections) {
+    if (!collection) continue;
+    // Find documents where asesorId exists and is NOT a string.
+    // MongoDB $type: 2 is string.
+    const nonStringAsesors = await collection.find({
+      asesorId: { $exists: true, $not: { $type: 2 } }
+    }).toArray();
+
+    if (nonStringAsesors.length > 0) {
+      console.log(`Migrating ${nonStringAsesors.length} documents in ${collection.collectionName} to string asesorId`);
+      for (const doc of nonStringAsesors) {
+        if (doc.asesorId !== undefined && doc.asesorId !== null) {
+          await collection.updateOne(
+            { _id: doc._id },
+            { $set: { asesorId: String(doc.asesorId) } }
+          );
+        }
+      }
+    }
+  }
+}
+
 export async function initializeDatabase(): Promise<void> {
   const db = await connectToMongoDB();
 
@@ -47,53 +75,85 @@ export async function initializeDatabase(): Promise<void> {
   await enlacesCollection.createIndex({ asesorId: 1 });
 
   await seedDatabase();
+  await migrateAsesorIds(); // Run migration
   console.log('Database initialized and collections ready.');
 }
 
 export async function getDashboardData(period: 'today' | 'week' | 'month' | 'total') {
   try {
     const now = new Date();
-    let startDate: Date;
-
-    const query: any = {};
+    let startDate: string | undefined;
 
     switch (period) {
       case 'today':
-        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        query.fechaCreacion = { $gte: startDate.toISOString() };
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
         break;
       case 'week':
-        startDate = new Date(now.setDate(now.getDate() - now.getDay())); // Start of current week (Sunday)
-        query.fechaCreacion = { $gte: startDate.toISOString() };
+        const weekStart = new Date(now);
+        weekStart.setDate(now.getDate() - now.getDay()); // Start of current week (Sunday)
+        weekStart.setHours(0, 0, 0, 0);
+        startDate = weekStart.toISOString();
         break;
       case 'month':
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        query.fechaCreacion = { $gte: startDate.toISOString() };
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
         break;
       case 'total':
       default:
-        // No date query needed for total
+        startDate = undefined;
         break;
     }
 
-    const totalClients = await clientesCollection.countDocuments(query);
-    const totalAgents = await agentesCollection.countDocuments(query);
-    const totalAvisos = await avisosCollection.countDocuments(query);
-    const totalEnlaces = await enlacesCollection.countDocuments(query);
+    const dateFilter = startDate ? { fechaCreacion: { $gte: startDate } } : {};
+
+    // KPIs
+    const nuevosClientes = await clientesCollection.countDocuments(dateFilter);
+    // Assuming 'estatus' can be 'Activa', 'Activo', etc. Adjust based on actual data values.
+    // Using regex for flexibility or specific value. Let's assume 'Activa' based on common patterns or check typos.
+    const polizasActivas = await clientesCollection.countDocuments({ ...dateFilter, estatus: 'Activa' });
+
+    // Gestiones Pendientes - This field 'gestionStatus' was seen in addCliente as "PENDIENTE"
+    const gestionesPendientes = await clientesCollection.countDocuments({ ...dateFilter, gestionStatus: 'PENDIENTE' });
+
+    // Breakdowns
+
+    // Clients per Asesor
+    const clientsByAsesorRaw = await clientesCollection.aggregate([
+      { $match: dateFilter },
+      { $group: { _id: "$asesorId", count: { $sum: 1 } } }
+    ]).toArray();
+
+    // Fetch users to map IDs to Names
+    const users = await getUsuarios();
+    const clientesPorAsesor = clientsByAsesorRaw.map(item => {
+      const user = users.find(u => u.id === item._id);
+      return {
+        asesorName: user ? user.name : `ID: ${item._id}`,
+        clientCount: item.count
+      };
+    });
+
+    // Clients per Estado
+    const clientesPorEstado = await clientesCollection.aggregate([
+      { $match: dateFilter },
+      { $group: { _id: "$estado", count: { $sum: 1 } } },
+      { $project: { estado: { $ifNull: ["$_id", "Sin Estado"] }, clientCount: "$count", _id: 0 } }
+    ]).toArray();
 
     return {
-      totalClients,
-      totalAgents,
-      totalAvisos,
-      totalEnlaces,
+      kpis: {
+        nuevosClientes,
+        polizasActivas,
+        gestionesPendientes,
+      },
+      clientesPorAsesor,
+      clientesPorEstado,
     };
   } catch (error) {
     console.error('Error fetching dashboard data:', error);
     return {
-      totalClients: 0,
-      totalAgents: 0,
-      totalAvisos: 0,
-      totalEnlaces: 0,
+      kpis: { nuevosClientes: 0, polizasActivas: 0, gestionesPendientes: 0 },
+      clientesPorAsesor: [],
+      clientesPorEstado: [],
     };
   }
 }
@@ -112,19 +172,26 @@ export async function getClienteById(id: string) {
   }
 }
 export async function addCliente(cliente: any) {
-  const { nombreCompleto, telefono, estado, compania, estatus, asesorId } = cliente;
-  const now = new Date();
-  const result = await clientesCollection.insertOne({
-    nombreCompleto,
-    telefono,
-    estado,
-    compania,
-    estatus,
-    asesorId,
-    fechaCreacion: now.toISOString(),
-    updated_at: now.toISOString(),
-  });
-  return result.insertedId.toHexString();
+  try {
+    const { nombreCompleto, telefono, estado, compania, estatus, asesorId } = cliente;
+    const now = new Date();
+    const result = await clientesCollection.insertOne({
+      nombreCompleto,
+      telefono,
+      estado,
+      compania,
+      estatus,
+      asesorId,
+      fechaCreacion: now.toISOString(),
+      updated_at: now.toISOString(),
+      lastGestionDate: now.toISOString(), // Initialize with current date
+      gestionStatus: "PENDIENTE",       // Default status for new clients
+    });
+    return result.insertedId.toHexString();
+  } catch (error) {
+    console.error(`Error adding client:`, error);
+    return null;
+  }
 }
 export async function updateCliente(id: string, updates: any) {
   try {
@@ -140,6 +207,8 @@ export async function updateCliente(id: string, updates: any) {
     if (updates.estado !== undefined) updateDoc.$set.estado = updates.estado;
     if (updates.compania !== undefined) updateDoc.$set.compania = updates.compania;
     if (updates.estatus !== undefined) updateDoc.$set.estatus = updates.estatus;
+    if (updates.lastGestionDate !== undefined) updateDoc.$set.lastGestionDate = updates.lastGestionDate;
+    if (updates.gestionStatus !== undefined) updateDoc.$set.gestionStatus = updates.gestionStatus;
 
     await clientesCollection.updateOne(
       { _id: new ObjectId(id) },

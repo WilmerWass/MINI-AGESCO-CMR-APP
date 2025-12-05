@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Typography,
   Box,
@@ -21,6 +22,8 @@ const NotificationsPage: React.FC = () => {
   const [notifications, setNotifications] = useState<Aviso[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
+  const navigate = useNavigate();
 
   // Form state
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -57,7 +60,7 @@ const NotificationsPage: React.FC = () => {
     fetchNotifications();
   }, [fetchNotifications]);
 
-  const handleUpdateAvisoStatus = async (id: number, newStatus: string) => {
+  const handleUpdateAvisoStatus = async (id: string, newStatus: string) => {
     try {
       if (!window.api || !window.api.updateAviso) {
         throw new Error('API para actualizar avisos no disponible.');
@@ -126,7 +129,7 @@ const NotificationsPage: React.FC = () => {
       </Stack>
       <Grid container spacing={3}>
         {notifications.map((notification) => (
-          <Grid item xs={12} sm={6} md={4} key={notification.id}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={notification.id}>
             <Card sx={{ backgroundColor: 'var(--card)' }}>
               <CardContent>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
@@ -148,12 +151,26 @@ const NotificationsPage: React.FC = () => {
               </CardContent>
               <CardActions>
                 {notification.status === 'Pendiente' ? (
-                  <Button size="small" onClick={() => handleUpdateAvisoStatus(notification.id, 'Visto')}>
+                  <Button size="small" onClick={() => handleUpdateAvisoStatus(notification.id as string, 'Visto')}>
                     Marcar Visto
                   </Button>
                 ) : (
-                  <Button size="small" onClick={() => handleUpdateAvisoStatus(notification.id, 'Pendiente')}>
+                  <Button size="small" onClick={() => handleUpdateAvisoStatus(notification.id as string, 'Pendiente')}>
                     Reabrir
+                  </Button>
+                )}
+                {notification.clientId && (
+                  <Button
+                    size="small"
+                    color="primary"
+                    onClick={() => {
+                      if (notification.status === 'Pendiente') {
+                        handleUpdateAvisoStatus(notification.id as string, 'Visto');
+                      }
+                      navigate('/dashboard/clientes', { state: { openClientId: notification.clientId } });
+                    }}
+                  >
+                    Ir a Gestión
                   </Button>
                 )}
               </CardActions>
@@ -161,7 +178,7 @@ const NotificationsPage: React.FC = () => {
           </Grid>
         ))}
       </Grid>
-      
+
       <AvisoForm
         open={isFormOpen}
         onClose={() => setIsFormOpen(false)}

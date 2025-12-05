@@ -20,7 +20,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 
 interface Enlace {
-  id: number;
+  id: string;
   name: string;
   url: string;
   asesorId: string | null;
@@ -113,7 +113,7 @@ const LinksPage: React.FC = () => {
     }
   };
 
-  const handleDeleteLink = async (id: number) => {
+  const handleDeleteLink = async (id: string) => {
     if (window.confirm('¿Estás seguro de eliminar este enlace?')) {
       try {
         await window.api.deleteEnlace(id);

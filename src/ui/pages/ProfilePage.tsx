@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Typography, Box, Button, Grid, Card, CardContent, CardActions, Avatar,
-  Divider, TextField, CircularProgress, Alert, Stack, IconButton, Snackbar, Select, MenuItem, FormControl, InputLabel
+  Divider, TextField, CircularProgress, Alert, Stack, IconButton, Snackbar, Select, MenuItem, FormControl, InputLabel, SelectChangeEvent
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
@@ -24,7 +24,7 @@ const ProfilePage: React.FC = () => {
 
   // Form state
   const [formData, setFormData] = useState<Partial<User>>({});
-  
+
   // Password state
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -67,8 +67,8 @@ const ProfilePage: React.FC = () => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name as string]: value }));
   };
-  
-  const handleSelectChange = (e: React.ChangeEvent<{ name?: string; value: unknown }>) => {
+
+  const handleSelectChange = (e: SelectChangeEvent) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name as string]: value }));
   };
@@ -86,7 +86,7 @@ const ProfilePage: React.FC = () => {
       }
     }
   };
-  
+
   const handlePasswordChange = async () => {
     if (password.length < 6) {
       setSnackbar({ open: true, message: '❌ La contraseña debe tener al menos 6 caracteres.', severity: 'error' });
@@ -111,7 +111,7 @@ const ProfilePage: React.FC = () => {
       <Card elevation={3} sx={{ backgroundColor: 'var(--card)' }}>
         <CardContent sx={{ p: 4 }}>
           <Grid container spacing={4} alignItems="center">
-            <Grid item xs={12} sm={4} sx={{ textAlign: 'center' }}>
+            <Grid size={{ xs: 12, sm: 4 }} sx={{ textAlign: 'center' }}>
               <Box sx={{ position: 'relative', width: 120, height: 120, margin: 'auto' }}>
                 <Avatar src={user.avatar} sx={{ width: '100%', height: '100%', fontSize: '3rem' }}>
                   {!user.avatar && user.name.charAt(0)}
@@ -126,7 +126,7 @@ const ProfilePage: React.FC = () => {
                 </IconButton>
               </Box>
             </Grid>
-            <Grid item xs={12} sm={8}>
+            <Grid size={{ xs: 12, sm: 8 }}>
               {isEditing ? (
                 <TextField
                   fullWidth
@@ -143,15 +143,15 @@ const ProfilePage: React.FC = () => {
               <Typography variant="body1" color="text.secondary" gutterBottom>{user.email}</Typography>
             </Grid>
           </Grid>
-          
+
           <Divider sx={{ my: 3 }} />
 
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Typography variant="overline" color="text.secondary">Rol</Typography>
               <Typography variant="body1">{user.role}</Typography>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Typography variant="overline" color="text.secondary">Estado</Typography>
               {isEditing ? (
                 <FormControl variant="standard" fullWidth>

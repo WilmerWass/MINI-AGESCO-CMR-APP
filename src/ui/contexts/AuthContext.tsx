@@ -5,6 +5,7 @@ interface User {
     email: string;
     name: string;
     role: 'admin' | 'asesor';
+    status: 'Activo' | 'Inactivo';
     avatar?: string;
 }
 
@@ -39,7 +40,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [loading, setLoading] = useState<boolean>(false);
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
-    
+
     // Check for user session on initial load (optional, simple implementation)
     useEffect(() => {
         const sessionUser = sessionStorage.getItem('user');

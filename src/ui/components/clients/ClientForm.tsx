@@ -226,7 +226,8 @@ const ClientForm: React.FC<ClientFormProps> = ({ open, onClose, client, mode, on
             aplica: 'Sí',
             ssn: '',
             notas: '',
-            genero: ''
+            genero: '',
+            ingresos: ''
         };
         setFormData(prev => ({
             ...prev,
@@ -264,15 +265,18 @@ const ClientForm: React.FC<ClientFormProps> = ({ open, onClose, client, mode, on
     // Notes Management
     const handleAddNote = () => {
         if (!newNote.trim()) return;
+        const now = new Date().toISOString();
         const note = {
-            fecha: new Date().toISOString(),
+            fecha: now,
             texto: newNote,
             autor: 'Usuario'
         };
         setFormData(prev => ({
             ...prev,
             notas: [note, ...(prev.notas || [])],
-            ultimoSeguimiento: new Date().toISOString() // Update last follow-up
+            ultimoSeguimiento: now, // Update last follow-up
+            lastGestionDate: now,    // Update last gestion date
+            gestionStatus: "EN SEGUIMIENTO" // Update gestion status
         }));
         setNewNote('');
     };
@@ -284,14 +288,20 @@ const ClientForm: React.FC<ClientFormProps> = ({ open, onClose, client, mode, on
     const copySection = async (section: 'all' | 'personal' | 'family' | 'insurance' | 'payment' | 'notes') => {
         let info = '';
 
-        if (section === 'all' || section === 'personal') {
-            if (section === 'personal') info += '📋 INFORMACIÓN PERSONAL\n───────────────────────────────────────────\n';
-            else {
-                info += '═══════════════════════════════════════════\n';
-                info += '           INFORMACIÓN DEL CLIENTE\n';
-                info += '═══════════════════════════════════════════\n\n';
-                info += '📋 INFORMACIÓN PERSONAL\n───────────────────────────────────────────\n';
-            }
+        if (section === 'personal') {
+            const memberCount = 1 + (formData.dependientes?.length || 0);
+            info += `APLICA: ${formData.aplica || 'Sí'}\n`;
+            info += `NOMBRE COMPLETO: ${formData.nombreCompleto || ''}\n`;
+            info += `FECHA DE NACIMIENTO: ${formData.fechaNacimiento || ''}\n`;
+            info += `TELEFONO: ${formData.telefono || ''}\n`;
+            info += `EMAIL: ${formData.email || ''}\n`;
+            info += `ZIPCODE: ${formData.zipcode || ''}\n`;
+            info += `NUMERO DE MIEMBROS: ${memberCount}\n`;
+            info += `INGRESOS: ${formData.ingresos || ''}\n`;
+            info += `COMPAÑIA: ${formData.compania || ''}\n`;
+            info += `LINK: \n`;
+        } else if (section === 'all') {
+            info += '📋 INFORMACIÓN PERSONAL\n';
             info += `Nombre Completo: ${formData.nombreCompleto || 'N/A'}\n`;
             info += `Fecha de Nacimiento: ${formData.fechaNacimiento || 'N/A'}\n`;
             info += `Edad: ${formData.edad || 'N/A'}\n`;
@@ -301,20 +311,20 @@ const ClientForm: React.FC<ClientFormProps> = ({ open, onClose, client, mode, on
             info += `SSN: ${formData.ssn || 'N/A'}\n`;
             info += `Estatus Migratorio: ${formData.estatusMigratorio || 'N/A'}\n\n`;
 
-            info += '📍 DIRECCIÓN\n───────────────────────────────────────────\n';
+            info += '📍 DIRECCIÓN\n';
             info += `Dirección: ${formData.direccion || 'N/A'}\n`;
-            info += `Zipcode: ${formData.zipcode || 'N/A'}\n`;
+            info += `Ciudad / Municipio: ${formData.zipcode || 'N/A'}\n`;
             info += `Estado: ${formData.estado || 'N/A'}\n`;
-            info += `Condado: ${formData.condado || 'N/A'}\n\n`;
+            info += `Departamento: ${formData.condado || 'N/A'}\n\n`;
 
-            info += '💰 INFORMACIÓN FINANCIERA\n───────────────────────────────────────────\n';
+            info += '💰 INFORMACIÓN FINANCIERA\n';
             info += `Ingresos: ${formData.ingresos || 'N/A'}\n`;
             info += `Impuestos: ${formData.impuestos || 'N/A'}\n\n`;
         }
 
         if (section === 'all' || section === 'family') {
             if (formData.dependientes && formData.dependientes.length > 0) {
-                info += '👨‍👩‍👧‍👦 GRUPO FAMILIAR\n───────────────────────────────────────────\n';
+                info += '👨‍👩‍👧‍👦 GRUPO FAMILIAR\n';
                 formData.dependientes.forEach((dep: any, index: number) => {
                     info += `\nMiembro ${index + 1}:\n`;
                     info += `  • Nombre: ${dep.nombreCompleto || 'N/A'}\n`;
@@ -329,12 +339,12 @@ const ClientForm: React.FC<ClientFormProps> = ({ open, onClose, client, mode, on
                 });
                 info += '\n';
             } else if (section === 'family') {
-                info += '👨‍👩‍👧‍👦 GRUPO FAMILIAR\n───────────────────────────────────────────\nNo hay dependientes registrados.\n\n';
+                info += '👨‍👩‍👧‍👦 GRUPO FAMILIAR\nNo hay dependientes registrados.\n\n';
             }
         }
 
         if (section === 'all' || section === 'insurance') {
-            info += '🏥 INFORMACIÓN DEL SEGURO\n───────────────────────────────────────────\n';
+            info += '🏥 INFORMACIÓN DEL SEGURO\n';
             info += `Compañía: ${formData.compania || 'N/A'}\n`;
             info += `Nombre del Plan: ${formData.plan?.nombre || 'N/A'}\n`;
             info += `Número de Póliza: ${formData.plan?.poliza || 'N/A'}\n`;
@@ -345,7 +355,7 @@ const ClientForm: React.FC<ClientFormProps> = ({ open, onClose, client, mode, on
         }
 
         if (section === 'all' || section === 'payment') {
-            info += '💳 MÉTODO DE PAGO\n───────────────────────────────────────────\n';
+            info += '💳 MÉTODO DE PAGO\n';
             let hasPayment = false;
             if (formData.pago?.cuentasBancarias && formData.pago.cuentasBancarias.length > 0) {
                 hasPayment = true;
@@ -369,17 +379,15 @@ const ClientForm: React.FC<ClientFormProps> = ({ open, onClose, client, mode, on
 
         if (section === 'all' || section === 'notes') {
             if (formData.notas && formData.notas.length > 0) {
-                info += '📝 NOTAS DE SEGUIMIENTO\n───────────────────────────────────────────\n';
+                info += '📝 NOTAS DE SEGUIMIENTO\n';
                 formData.notas.forEach((nota: any, index: number) => {
                     const fecha = new Date(nota.fecha).toLocaleString('es-ES');
                     info += `[${fecha}] ${nota.autor || 'Usuario'}:\n${nota.texto}\n\n`;
                 });
             } else if (section === 'notes') {
-                info += '📝 NOTAS DE SEGUIMIENTO\n───────────────────────────────────────────\nNo hay notas registradas.\n\n';
+                info += '📝 NOTAS DE SEGUIMIENTO\nNo hay notas registradas.\n\n';
             }
         }
-
-        if (section === 'all') info += '═══════════════════════════════════════════\n';
 
         try {
             await navigator.clipboard.writeText(info);
@@ -588,11 +596,11 @@ const ClientForm: React.FC<ClientFormProps> = ({ open, onClose, client, mode, on
                                 />
                             </Grid>
 
-                            {/* ZIPCODE */}
+                            {/* ZIPCODE -> CIUDAD / MUNICIPIO */}
                             <Grid size={{ xs: 12, sm: 4 }}>
                                 <TextField
                                     fullWidth
-                                    label="ZIPCODE"
+                                    label="CIUDAD / MUNICIPIO"
                                     value={formData.zipcode || ''}
                                     onChange={(e) => handleInputChange('zipcode', e.target.value)}
                                     disabled={readOnly}
@@ -603,18 +611,18 @@ const ClientForm: React.FC<ClientFormProps> = ({ open, onClose, client, mode, on
                             <Grid size={{ xs: 12, sm: 4 }}>
                                 <TextField
                                     fullWidth
-                                    label="ESTADO"
+                                    label="ESTADO (EE.UU) / PROVINCIA"
                                     value={formData.estado || ''}
                                     onChange={(e) => handleInputChange('estado', e.target.value)}
                                     disabled={readOnly}
                                 />
                             </Grid>
 
-                            {/* CONDADO */}
+                            {/* CONDADO -> DEPARTAMENTO */}
                             <Grid size={{ xs: 12, sm: 4 }}>
                                 <TextField
                                     fullWidth
-                                    label="CONDADO"
+                                    label="DEPARTAMENTO"
                                     value={formData.condado || ''}
                                     onChange={(e) => handleInputChange('condado', e.target.value)}
                                     disabled={readOnly}
@@ -654,7 +662,7 @@ const ClientForm: React.FC<ClientFormProps> = ({ open, onClose, client, mode, on
                             <Grid size={{ xs: 12, sm: 6 }}>
                                 <TextField
                                     fullWidth
-                                    label="S.S.N"
+                                    label="IDENTIFICACIÓN (CC / NIT / TI / SSN)"
                                     placeholder="123-45-6789"
                                     value={formData.ssn || ''}
                                     onChange={(e) => handleInputChange('ssn', formatSSN(e.target.value))}
@@ -804,6 +812,27 @@ const ClientForm: React.FC<ClientFormProps> = ({ open, onClose, client, mode, on
                                                 onChange={(e) => handleDependentChange(index, 'parentesco', e.target.value)}
                                                 disabled={readOnly}
                                                 size="small"
+                                                select
+                                                SelectProps={{ native: true }}
+                                            >
+                                                <option value=""></option>
+                                                <option value="CÓNYUGE">CÓNYUGE</option>
+                                                <option value="HIJO/A">HIJO/A</option>
+                                                <option value="PADRE/MADRE">PADRE/MADRE</option>
+                                                <option value="HERMANO/A">HERMANO/A</option>
+                                                <option value="OTRO">OTRO</option>
+                                            </TextField>
+                                        </Grid>
+
+                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                            <TextField
+                                                fullWidth
+                                                label="INGRESOS"
+                                                placeholder="1.000,00"
+                                                value={dep.ingresos || ''}
+                                                onChange={(e) => handleDependentChange(index, 'ingresos', formatCurrency(e.target.value))}
+                                                disabled={readOnly}
+                                                size="small"
                                             />
                                         </Grid>
 
@@ -905,6 +934,7 @@ const ClientForm: React.FC<ClientFormProps> = ({ open, onClose, client, mode, on
                                     disabled={readOnly}
                                 />
                             </Grid>
+
                             <Grid size={{ xs: 12, sm: 6 }}>
                                 <TextField
                                     fullWidth
@@ -1091,6 +1121,37 @@ const ClientForm: React.FC<ClientFormProps> = ({ open, onClose, client, mode, on
                                 Copiar
                             </Button>
                         </Box>
+                        <Grid container spacing={2} sx={{ mb: 3 }}>
+                            {/* LAST GESTION DATE */}
+                            <Grid size={{ xs: 12, sm: 6 }}>
+                                <TextField
+                                    fullWidth
+                                    label="ÚLTIMA FECHA DE GESTIÓN"
+                                    value={formData.lastGestionDate ? new Date(formData.lastGestionDate).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
+                                    disabled // This field is updated automatically
+                                    InputLabelProps={{ shrink: true }}
+                                />
+                            </Grid>
+
+                            {/* GESTION STATUS */}
+                            <Grid size={{ xs: 12, sm: 6 }}>
+                                <TextField
+                                    fullWidth
+                                    label="ESTADO DE GESTIÓN"
+                                    value={formData.gestionStatus || 'PENDIENTE'}
+                                    onChange={(e) => handleInputChange('gestionStatus', e.target.value)}
+                                    disabled={false}
+                                    select
+                                    SelectProps={{ native: true }}
+                                >
+                                    <option value="PENDIENTE">PENDIENTE</option>
+                                    <option value="EN SEGUIMIENTO">EN SEGUIMIENTO</option>
+                                    <option value="FINALIZADA">FINALIZADA</option>
+                                    <option value="CERRADA">CERRADA</option>
+                                </TextField>
+                            </Grid>
+                        </Grid>
+
                         <Grid container spacing={2} sx={{ mb: 3 }}>
                             <Grid size={{ xs: 12, sm: 6 }}>
                                 <TextField

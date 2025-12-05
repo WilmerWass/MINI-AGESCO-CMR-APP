@@ -16,7 +16,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 
 export interface User {
-  id: number;
+  id: string;
   name: string;
   email: string;
   role: 'admin' | 'asesor';
@@ -27,7 +27,7 @@ interface UsersTableProps {
   users: User[];
   currentUser: User | null;
   onEdit: (user: User) => void;
-  onDelete: (userId: number) => void;
+  onDelete: (userId: string) => void;
 }
 
 const UsersTable: React.FC<UsersTableProps> = ({ users, currentUser, onEdit, onDelete }) => {

@@ -7,37 +7,37 @@ declare global {
       invoke(channel: string, ...args: any[]): Promise<any>;
     };
     api: {
-      login: (credentials: { email: string; password:string }) => Promise<{ success: boolean; user?: any; message?: string }>;
-      
-      getClientes: (asesorId?: number) => Promise<any[]>;
-      getClienteById: (id: number) => Promise<any | null>;
-      addCliente: (cliente: any) => Promise<number>;
-      updateCliente: (id: number, updates: any) => Promise<void>;
-      deleteCliente: (id: number) => Promise<void>;
+      login: (credentials: { email: string; password: string }) => Promise<{ success: boolean; user?: any; message?: string }>;
 
-      getAgentes: (asesorId?: number) => Promise<any[]>;
-      getAgenteById: (id: number) => Promise<any | null>;
-      addAgente: (agente: any) => Promise<number>;
-      updateAgente: (id: number, updates: any) => Promise<void>;
-      deleteAgente: (id: number) => Promise<void>;
+      getClientes: (asesorId?: string) => Promise<any[]>;
+      getClienteById: (id: string) => Promise<any | null>;
+      addCliente: (cliente: any) => Promise<any>;
+      updateCliente: (id: string, updates: any) => Promise<void>;
+      deleteCliente: (id: string) => Promise<void>;
 
-      getAvisos: (user: { id: number; email: string; }) => Promise<any[]>;
-      getAvisoById: (id: number) => Promise<any | null>;
-      addAviso: (aviso: any) => Promise<number>;
-      updateAviso: (id: number, updates: any) => Promise<void>;
-      deleteAviso: (id: number) => Promise<void>;
+      getAgentes: (asesorId?: string) => Promise<any[]>;
+      getAgenteById: (id: string) => Promise<any | null>;
+      addAgente: (agente: any) => Promise<any>;
+      updateAgente: (id: string, updates: any) => Promise<void>;
+      deleteAgente: (id: string) => Promise<void>;
 
-      getEnlaces: (asesorId?: number) => Promise<any[]>;
-      getEnlaceById: (id: number) => Promise<any | null>;
-      addEnlace: (enlace: any) => Promise<number>;
-      updateEnlace: (id: number, updates: any) => Promise<void>;
-      deleteEnlace: (id: number) => Promise<void>;
+      getAvisos: (user: { id: string; email: string; }) => Promise<any[]>;
+      getAvisoById: (id: string) => Promise<any | null>;
+      addAviso: (aviso: any) => Promise<any>;
+      updateAviso: (id: string, updates: any) => Promise<void>;
+      deleteAviso: (id: string) => Promise<void>;
+
+      getEnlaces: (asesorId?: string) => Promise<any[]>;
+      getEnlaceById: (id: string) => Promise<any | null>;
+      addEnlace: (enlace: any) => Promise<any>;
+      updateEnlace: (id: string, updates: any) => Promise<void>;
+      deleteEnlace: (id: string) => Promise<void>;
 
       getUsuarios: () => Promise<any[]>;
-      getUsuarioById: (id: number) => Promise<any | null>;
-      addUsuario: (usuario: any) => Promise<{ success: boolean; userId?: number; message?: string }>;
-      updateUsuario: (id: number, updates: any) => Promise<void>;
-      deleteUsuario: (id: number) => Promise<void>;
+      getUsuarioById: (id: string) => Promise<any | null>;
+      addUsuario: (usuario: any) => Promise<any | null>;
+      updateUsuario: (id: string, updates: any) => Promise<void>;
+      deleteUsuario: (id: string) => Promise<void>;
 
       getDashboardData: (period: 'today' | 'week' | 'month' | 'total') => Promise<{ success: boolean; data?: any; message?: string }>;
       saveAvatar: (filePath: string) => Promise<string | null>;
@@ -45,4 +45,4 @@ declare global {
   }
 }
 
-export {};
+export { };

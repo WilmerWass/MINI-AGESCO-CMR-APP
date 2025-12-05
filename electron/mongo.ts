@@ -3,7 +3,7 @@ import { MongoClient, Db } from 'mongodb';
 // Replace with your MongoDB Atlas connection string
 // Example: "mongodb+srv://user:password@clustername.mongodb.net/agesco_crm?retryWrites=true&w=majority"
 // Make sure to replace <user>, <password>, <clustername>, and <dbname> with your actual values.
-const MONGODB_URI = "mongodb+srv://wilmersaludybienestar_db_user:Na19s7JFltdyk2sZ@cluster0.ryqzv2d.mongodb.net/?appName=Cluster0&tlsAllowInvalidCertificates=true";
+const MONGODB_URI = "mongodb+srv://wilmersaludybienestar_db_user:Na19s7JFltdyk2sZ@cluster0.ryqzv2d.mongodb.net/?appName=Cluster0";
 
 let client: MongoClient;
 let db: Db;
