@@ -1,4 +1,4 @@
-# AGESCO CRM
+# AGECO CRM
 
 Una aplicación de escritorio para la gestión de relaciones con clientes (CRM), construida con tecnologías web modernas y empaquetada para su uso en escritorio con Electron.
 

@@ -1,6 +1,6 @@
-# Plan de Trabajo Actualizado: MINI AGESCO CRM PC-BETA (con Electron)
+# Plan de Trabajo Actualizado: MINI AGECO CRM PC-BETA (con Electron)
 
-Este documento detalla el plan de desarrollo para la versión de escritorio de AGESCO CRM, integrando funcionalidades completas de UI/UX, capacidades offline y una estrategia de sincronización adaptada a las necesidades de negocio.
+Este documento detalla el plan de desarrollo para la versión de escritorio de AGECO CRM, integrando funcionalidades completas de UI/UX, capacidades offline y una estrategia de sincronización adaptada a las necesidades de negocio.
 
 ## Arquitectura y Tecnologías Clave
 

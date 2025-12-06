@@ -1,5 +1,5 @@
 
-# Guía Visual y Estructural de la Aplicación AGESCO CRM
+# Guía Visual y Estructural de la Aplicación AGECO CRM
 
 Este documento describe la estructura visual, el diseño y los componentes de cada pantalla principal de la aplicación. Está diseñado para ser utilizado como una guía de referencia para la reconstrucción de la interfaz de usuario.
 
@@ -15,7 +15,7 @@ Este documento describe la estructura visual, el diseño y los componentes de ca
     *   **Contenedor Principal**: Un `div` que ocupa toda la pantalla (`min-h-screen`) con un color de fondo (`bg-background`). Los elementos están centrados vertical y horizontalmente.
     *   **Tarjeta de Formulario**: Un componente `Card` de ShadCN, con un ancho máximo (`max-w-sm`), que contiene todos los elementos del formulario.
         *   **Encabezado (`CardHeader`)**:
-            *   **Título (`CardTitle`)**: "AGESCO CRM", en texto grande y negrita.
+            *   **Título (`CardTitle`)**: "AGECO CRM", en texto grande y negrita.
             *   **Descripción (`CardDescription`)**: "Ingrese sus credenciales para acceder al sistema.", en texto más pequeño y de color tenue.
         *   **Contenido (`CardContent`)**:
             *   **Campo 1 (Email)**: Una `Label` con el texto "Correo Electrónico" sobre un componente `Input` de tipo `email` con el placeholder "m@example.com".

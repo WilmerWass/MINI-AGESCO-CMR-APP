@@ -1,6 +1,6 @@
 # Implementaciones Futuras Basadas en "EJEMPLO.pdf"
 
-Este documento resume las funcionalidades y campos adicionales identificados en el archivo "EJEMPLO.pdf", que servirán como guía para futuras implementaciones en la aplicación MINI AGESCO CMR.
+Este documento resume las funcionalidades y campos adicionales identificados en el archivo "EJEMPLO.pdf", que servirán como guía para futuras implementaciones en la aplicación MINI AGECO CRM.
 
 ## Resumen del Análisis del PDF:
 
