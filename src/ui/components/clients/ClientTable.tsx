@@ -8,6 +8,7 @@ import {
   TableRow,
   Paper,
   Checkbox,
+  TablePagination,
   IconButton,
   Menu,
   MenuItem,
@@ -25,7 +26,6 @@ export interface Client {
   id: string;
   nombreCompleto: string;
   telefono: string;
-  estado: string;
   compania: string;
   estatus: string;
   asesorId: string;
@@ -79,6 +79,8 @@ const ClientTable: React.FC<ClientTableProps> = ({ clients, users = [], onView, 
   const [selectedClients, setSelectedClients] = useState<string[]>([]);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [menuClientId, setMenuClientId] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
   const userMap = new Map(users.map(u => [u.id, u.name]));
 
   const handleSelectAllClick = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -133,6 +135,18 @@ const ClientTable: React.FC<ClientTableProps> = ({ clients, users = [], onView, 
 
   const isSelected = (id: string) => selectedClients.indexOf(id) !== -1;
 
+  const handleChangePage = (event: unknown, newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  // Paginate clients
+  const paginatedClients = clients.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
   return (
     <Box>
       {selectedClients.length > 0 && (
@@ -172,7 +186,7 @@ const ClientTable: React.FC<ClientTableProps> = ({ clients, users = [], onView, 
             </TableRow>
           </TableHead>
           <TableBody>
-            {clients.map((client) => {
+            {paginatedClients.map((client) => {
               const isItemSelected = isSelected(client.id);
               const labelId = `enhanced-table-checkbox-${client.id}`;
 
@@ -267,6 +281,17 @@ const ClientTable: React.FC<ClientTableProps> = ({ clients, users = [], onView, 
             })}
           </TableBody>
         </Table>
+        <TablePagination
+          rowsPerPageOptions={[25, 50, 100]}
+          component="div"
+          count={clients.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          labelRowsPerPage="Filas por página:"
+          labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
+        />
       </TableContainer>
 
       <Menu
