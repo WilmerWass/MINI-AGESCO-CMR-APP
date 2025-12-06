@@ -26,6 +26,12 @@ async function seedDatabase() {
   }
 }
 
+// Helper to map MongoDB _id to string id
+const mapDocument = (doc: any) => {
+  if (!doc) return null;
+  const { _id, ...rest } = doc;
+  return { id: _id.toHexString(), ...rest };
+};
 
 
 // Migration function to Ensure asesorId is String
@@ -125,9 +131,11 @@ export async function getDashboardData(period: 'today' | 'week' | 'month' | 'tot
     // Fetch users to map IDs to Names
     const users = await getUsuarios();
     const clientesPorAsesor = clientsByAsesorRaw.map(item => {
-      const user = users.find(u => u.id === item._id);
+      // Ensure we compare strings, handling both ObjectId and String types in DB
+      const idStr = item._id ? item._id.toString() : 'Unknown';
+      const user = users.find(u => u.id === idStr);
       return {
-        asesorName: user ? user.name : `ID: ${item._id}`,
+        asesorName: user ? user.name : (idStr === 'Unknown' ? 'Sin Asignar' : `ID: ${idStr.substring(0, 6)}...`),
         clientCount: item.count
       };
     });
@@ -161,11 +169,13 @@ export async function getDashboardData(period: 'today' | 'week' | 'month' | 'tot
 // --- Clientes ---
 export async function getClientes(asesorId?: string) {
   const query = asesorId ? { asesorId } : {};
-  return clientesCollection.find(query).toArray();
+  const clientes = await clientesCollection.find(query).toArray();
+  return clientes.map(mapDocument);
 }
 export async function getClienteById(id: string) {
   try {
-    return clientesCollection.findOne({ _id: new ObjectId(id) });
+    const doc = await clientesCollection.findOne({ _id: new ObjectId(id) });
+    return mapDocument(doc);
   } catch (error) {
     console.error(`Error fetching client by ID ${id}:`, error);
     return null;
@@ -196,23 +206,19 @@ export async function addCliente(cliente: any) {
 export async function updateCliente(id: string, updates: any) {
   try {
     const now = new Date().toISOString();
-    const updateDoc: any = {
-      $set: {
-        updated_at: now,
-      },
-    };
 
-    if (updates.nombreCompleto !== undefined) updateDoc.$set.nombreCompleto = updates.nombreCompleto;
-    if (updates.telefono !== undefined) updateDoc.$set.telefono = updates.telefono;
-    if (updates.estado !== undefined) updateDoc.$set.estado = updates.estado;
-    if (updates.compania !== undefined) updateDoc.$set.compania = updates.compania;
-    if (updates.estatus !== undefined) updateDoc.$set.estatus = updates.estatus;
-    if (updates.lastGestionDate !== undefined) updateDoc.$set.lastGestionDate = updates.lastGestionDate;
-    if (updates.gestionStatus !== undefined) updateDoc.$set.gestionStatus = updates.gestionStatus;
+    // Crear una copia de updates sin el campo id
+    const { id: _, ...updateFields } = updates;
+
+    // Agregar el campo updated_at
+    const updateDoc = {
+      ...updateFields,
+      updated_at: now,
+    };
 
     await clientesCollection.updateOne(
       { _id: new ObjectId(id) },
-      updateDoc
+      { $set: updateDoc }
     );
   } catch (error) {
     console.error(`Error updating client by ID ${id}:`, error);
@@ -227,12 +233,15 @@ export async function deleteCliente(id: string) {
 }
 
 // --- Agentes ---
-export async function getAgentes(asesorId: string): Promise<any[]> {
-  return agentesCollection.find({ asesorId }).toArray();
+export async function getAgentes(asesorId?: string): Promise<any[]> {
+  const query = asesorId ? { asesorId } : {};
+  const agentes = await agentesCollection.find(query).toArray();
+  return agentes.map(mapDocument);
 }
 export async function getAgenteById(id: string) {
   try {
-    return agentesCollection.findOne({ _id: new ObjectId(id) });
+    const doc = await agentesCollection.findOne({ _id: new ObjectId(id) });
+    return mapDocument(doc);
   } catch (error) {
     console.error(`Error fetching agent by ID ${id}:`, error);
     return null;
@@ -282,17 +291,19 @@ export async function deleteAgente(id: string) {
 // --- Avisos ---
 export async function getAvisos(user: { id: string; email: string; }) {
   if (!user) return [];
-  return avisosCollection.find({
+  const avisos = await avisosCollection.find({
     $or: [
       { asesorId: user.id }, // Assuming asesorId in Avisos collection is stored as string matching user.id
       { recipient: user.email },
       { recipient: 'Todos' }
     ]
   }).toArray();
+  return avisos.map(mapDocument);
 }
 export async function getAvisoById(id: string) {
   try {
-    return avisosCollection.findOne({ _id: new ObjectId(id) });
+    const doc = await avisosCollection.findOne({ _id: new ObjectId(id) });
+    return mapDocument(doc);
   } catch (error) {
     console.error(`Error fetching aviso by ID ${id}:`, error);
     return null;
@@ -351,17 +362,24 @@ export async function deleteAviso(id: string) {
 }
 
 // --- Enlaces ---
-export async function getEnlaces(asesorId: string): Promise<any[]> {
-  return enlacesCollection.find({
-    $or: [
-      { asesorId: asesorId },
-      { asesorId: { $exists: false } } // Handles IS NULL equivalent in MongoDB
-    ]
-  }).toArray();
+export async function getEnlaces(asesorId?: string): Promise<any[]> {
+  const query = asesorId
+    ? {
+      $or: [
+        { asesorId: asesorId },
+        { asesorId: { $exists: false } }, // Common links
+        { asesorId: null }
+      ]
+    }
+    : {}; // Return all if no asesorId provided (e.g. Admin)
+
+  const enlaces = await enlacesCollection.find(query).toArray();
+  return enlaces.map(mapDocument);
 }
 export async function getEnlaceById(id: string) {
   try {
-    return enlacesCollection.findOne({ _id: new ObjectId(id) });
+    const doc = await enlacesCollection.findOne({ _id: new ObjectId(id) });
+    return mapDocument(doc);
   } catch (error) {
     console.error(`Error fetching enlace by ID ${id}:`, error);
     return null;
@@ -512,7 +530,13 @@ export async function getAllSyncData() {
       return { id: _id.toHexString(), ...rest };
     });
 
-    return { clientes, agentes, avisos, enlaces, usuarios };
+    return {
+      clientes: clientes.map(mapDocument),
+      agentes: agentes.map(mapDocument),
+      avisos: avisos.map(mapDocument),
+      enlaces: enlaces.map(mapDocument),
+      usuarios
+    };
   } catch (error) {
     console.error('Error fetching all sync data:', error);
     return { clientes: [], agentes: [], avisos: [], enlaces: [], usuarios: [] };

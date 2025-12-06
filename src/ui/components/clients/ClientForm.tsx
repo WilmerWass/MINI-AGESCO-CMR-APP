@@ -585,8 +585,30 @@ const ClientForm: React.FC<ClientFormProps> = ({ open, onClose, client, mode, on
                                 />
                             </Grid>
 
-                            {/* DIRECCIÓN COMPLETA */}
+
+                            {/* SECCIÓN DE DIRECCIÓN */}
                             <Grid size={{ xs: 12 }}>
+                                <Divider sx={{ my: 2 }} />
+                                <Typography variant="subtitle2" gutterBottom>Dirección</Typography>
+                            </Grid>
+
+                            {/* PAÍS */}
+                            <Grid size={{ xs: 12, sm: 2 }}>
+                                <TextField
+                                    fullWidth
+                                    label="PAÍS"
+                                    value={formData.pais || 'USA'}
+                                    onChange={(e) => handleInputChange('pais', e.target.value)}
+                                    disabled={readOnly}
+                                    select
+                                    SelectProps={{ native: true }}
+                                >
+                                    <option value="USA">USA</option>
+                                </TextField>
+                            </Grid>
+
+                            {/* DIRECCIÓN COMPLETA */}
+                            <Grid size={{ xs: 12, sm: 10 }}>
                                 <TextField
                                     fullWidth
                                     label="DIRECCIÓN COMPLETA"
@@ -596,33 +618,44 @@ const ClientForm: React.FC<ClientFormProps> = ({ open, onClose, client, mode, on
                                 />
                             </Grid>
 
-                            {/* ZIPCODE -> CIUDAD / MUNICIPIO */}
-                            <Grid size={{ xs: 12, sm: 4 }}>
+                            {/* CIUDAD / CITY */}
+                            <Grid size={{ xs: 12, sm: 3 }}>
                                 <TextField
                                     fullWidth
-                                    label="CIUDAD / MUNICIPIO"
-                                    value={formData.zipcode || ''}
-                                    onChange={(e) => handleInputChange('zipcode', e.target.value)}
+                                    label="CIUDAD / CITY"
+                                    value={formData.ciudad || ''}
+                                    onChange={(e) => handleInputChange('ciudad', e.target.value)}
                                     disabled={readOnly}
                                 />
                             </Grid>
 
-                            {/* ESTADO */}
-                            <Grid size={{ xs: 12, sm: 4 }}>
+                            {/* ESTADO / STATE */}
+                            <Grid size={{ xs: 12, sm: 3 }}>
                                 <TextField
                                     fullWidth
-                                    label="ESTADO (EE.UU) / PROVINCIA"
+                                    label="ESTADO / STATE"
                                     value={formData.estado || ''}
                                     onChange={(e) => handleInputChange('estado', e.target.value)}
                                     disabled={readOnly}
                                 />
                             </Grid>
 
-                            {/* CONDADO -> DEPARTAMENTO */}
-                            <Grid size={{ xs: 12, sm: 4 }}>
+                            {/* CÓDIGO POSTAL / ZIP CODE */}
+                            <Grid size={{ xs: 12, sm: 3 }}>
                                 <TextField
                                     fullWidth
-                                    label="DEPARTAMENTO"
+                                    label="CÓDIGO POSTAL / ZIP CODE"
+                                    value={formData.zipcode || ''}
+                                    onChange={(e) => handleInputChange('zipcode', e.target.value)}
+                                    disabled={readOnly}
+                                />
+                            </Grid>
+
+                            {/* CONDADO / COUNTY */}
+                            <Grid size={{ xs: 12, sm: 3 }}>
+                                <TextField
+                                    fullWidth
+                                    label="CONDADO / COUNTY"
                                     value={formData.condado || ''}
                                     onChange={(e) => handleInputChange('condado', e.target.value)}
                                     disabled={readOnly}

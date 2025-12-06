@@ -40,6 +40,9 @@ const createWindow = () => {
     },
   });
 
+  // Open DevTools
+  win.webContents.openDevTools();
+
   // Test active push message to Renderer-Process.
   win.webContents.on('did-finish-load', () => {
     win?.webContents.send('main-process-message', (new Date).toLocaleString());
@@ -76,7 +79,9 @@ app.whenReady().then(async () => {
   await initializeDatabase();
   createWindow();
 
-  startP2PServer(win);
+  if (win) {
+    startP2PServer(win);
+  }
 
   // IPC Main handler for Login
   ipcMain.handle('login', async (event, { email, password }) => {

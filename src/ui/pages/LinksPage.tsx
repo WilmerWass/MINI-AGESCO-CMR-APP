@@ -18,6 +18,7 @@ import {
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Enlace {
   id: string;
@@ -25,8 +26,6 @@ interface Enlace {
   url: string;
   asesorId: string | null;
 }
-
-const userRole = 'admin'; // Simulate admin role
 
 const LinksPage: React.FC = () => {
   const [links, setLinks] = useState<Enlace[]>([]);
@@ -37,13 +36,15 @@ const LinksPage: React.FC = () => {
   const [linkName, setLinkName] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
 
-  const currentAsesorId = 'admin@agesco.com'; // Hardcode asesorId for now
+  const { user, isAdmin } = useAuth();
+  const currentAsesorId = user?.id;
 
   const fetchLinks = async () => {
     setLoading(true);
     setError(null);
     try {
-      const fetchedLinks = await window.api.getEnlaces(currentAsesorId);
+      // If admin, fetch all (undefined). If user, fetch theirs + public.
+      const fetchedLinks = await window.api.getEnlaces(isAdmin() ? undefined : currentAsesorId);
       setLinks(fetchedLinks);
     } catch (err) {
       console.error('Failed to fetch links:', err);
@@ -55,7 +56,7 @@ const LinksPage: React.FC = () => {
 
   useEffect(() => {
     fetchLinks();
-  }, []);
+  }, [user, isAdmin]);
 
   const handleVisit = (url: string) => {
     window.open(url, '_blank');
@@ -97,7 +98,8 @@ const LinksPage: React.FC = () => {
         const newEnlace = {
           name: linkName,
           url: linkUrl,
-          asesorId: userRole === 'admin' ? null : currentAsesorId,
+          // If admin, global (null). If advisor, private (id).
+          asesorId: isAdmin() ? null : currentAsesorId,
         };
         await window.api.addEnlace(newEnlace);
       }
@@ -147,11 +149,9 @@ const LinksPage: React.FC = () => {
         <Typography variant="h4" gutterBottom>
           Enlaces Directos
         </Typography>
-        {userRole === 'admin' && (
-          <Button variant="contained" onClick={handleAddClick}>
-            Añadir Enlace
-          </Button>
-        )}
+        <Button variant="contained" onClick={handleAddClick}>
+          Añadir Enlace
+        </Button>
       </Box>
 
       <Grid container spacing={3}>
@@ -181,30 +181,28 @@ const LinksPage: React.FC = () => {
                   {link.url}
                 </Typography>
               </CardContent>
-              {userRole === 'admin' && (
-                <CardActions sx={{ justifyContent: 'center' }}>
-                  <IconButton
-                    size="small"
-                    aria-label="edit"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleEditLink(link);
-                    }}
-                  >
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    aria-label="delete"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteLink(link.id);
-                    }}
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </CardActions>
-              )}
+              <CardActions sx={{ justifyContent: 'center' }}>
+                <IconButton
+                  size="small"
+                  aria-label="edit"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleEditLink(link);
+                  }}
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+                <IconButton
+                  size="small"
+                  aria-label="delete"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteLink(link.id);
+                  }}
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </CardActions>
             </Card>
           </Grid>
         ))}

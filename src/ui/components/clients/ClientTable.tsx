@@ -39,6 +39,10 @@ export interface Client {
   edad?: string;
   genero?: string;
   email?: string;
+  pais?: string;
+  direccion?: string;
+  ciudad?: string;
+  estado?: string;
   zipcode?: string;
   condado?: string;
   ingresos?: string;
@@ -46,7 +50,6 @@ export interface Client {
   ssn?: string;
   estatusMigratorio?: string;
   palabraClave?: string;
-  direccion?: string;
 
   // Campos de grupo familiar
   dependientes?: any[];

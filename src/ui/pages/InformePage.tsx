@@ -55,7 +55,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'
 type Period = 'today' | 'week' | 'month' | 'total';
 
 const InformePage = () => {
-  const [period, setPeriod] = useState<Period>('today');
+  const [period, setPeriod] = useState<Period>('month');
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

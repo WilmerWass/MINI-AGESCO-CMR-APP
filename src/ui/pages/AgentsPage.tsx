@@ -21,10 +21,16 @@ import {
   DialogActions,
   TextField,
   Snackbar,
+  Stack,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
+import FilterAltOffIcon from '@mui/icons-material/FilterAltOff';
 import { useAuth } from '../contexts/AuthContext';
 
 interface Agent {
@@ -39,6 +45,11 @@ const AgentsPage: React.FC = () => {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Filters state
+  const [filterName, setFilterName] = useState('');
+  const [filterState, setFilterState] = useState('');
+  const [filterCompany, setFilterCompany] = useState('');
 
   // Modal and Form state
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -121,6 +132,22 @@ const AgentsPage: React.FC = () => {
     }
   };
 
+  const handleClearFilters = () => {
+    setFilterName('');
+    setFilterState('');
+    setFilterCompany('');
+  };
+
+  const uniqueStates = Array.from(new Set(agents.map(a => a.state).filter(Boolean)));
+  const uniqueCompanies = Array.from(new Set(agents.map(a => a.company).filter(Boolean)));
+
+  const filteredAgents = agents.filter(agent => {
+    const matchesName = agent.name.toLowerCase().includes(filterName.toLowerCase());
+    const matchesState = filterState === '' || agent.state === filterState;
+    const matchesCompany = filterCompany === '' || agent.company === filterCompany;
+    return matchesName && matchesState && matchesCompany;
+  });
+
   if (loading) return <CircularProgress />;
   if (error) return <Alert severity="error">{error}</Alert>;
 
@@ -139,6 +166,66 @@ const AgentsPage: React.FC = () => {
         )}
       </Box>
 
+      {/* Filters Section */}
+      <Card sx={{ mb: 3, backgroundColor: 'var(--card)' }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>Filtros</Typography>
+          <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap>
+            <Box sx={{ minWidth: 250, flexGrow: 1 }}>
+              <TextField
+                fullWidth
+                variant="outlined"
+                size="small"
+                label="Buscar Agente"
+                placeholder="Nombre..."
+                value={filterName}
+                onChange={(e) => setFilterName(e.target.value)}
+              />
+            </Box>
+            <Box sx={{ minWidth: 150 }}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Estado</InputLabel>
+                <Select
+                  value={filterState}
+                  label="Estado"
+                  onChange={(e) => setFilterState(e.target.value)}
+                >
+                  <MenuItem value=""><em>Todos</em></MenuItem>
+                  {uniqueStates.map(state => (
+                    <MenuItem key={state} value={state}>{state}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+            <Box sx={{ minWidth: 150 }}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Compañía</InputLabel>
+                <Select
+                  value={filterCompany}
+                  label="Compañía"
+                  onChange={(e) => setFilterCompany(e.target.value)}
+                >
+                  <MenuItem value=""><em>Todas</em></MenuItem>
+                  {uniqueCompanies.map(company => (
+                    <MenuItem key={company} value={company}>{company}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+            <Box sx={{ minWidth: 120 }}>
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={<FilterAltOffIcon />}
+                onClick={handleClearFilters}
+              >
+                Limpiar
+              </Button>
+            </Box>
+          </Stack>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardContent sx={{ p: 0 }}>
           <TableContainer component={Paper} sx={{ boxShadow: 'none' }}>
@@ -152,7 +239,7 @@ const AgentsPage: React.FC = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {agents.map((agent) => (
+                {filteredAgents.map((agent) => (
                   <TableRow key={agent.id}>
                     <TableCell>{agent.name}</TableCell>
                     <TableCell>{agent.state}</TableCell>
@@ -165,6 +252,15 @@ const AgentsPage: React.FC = () => {
                     )}
                   </TableRow>
                 ))}
+                {filteredAgents.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={isAdmin() ? 4 : 3} align="center">
+                      <Typography variant="body2" sx={{ my: 2, color: 'text.secondary' }}>
+                        No se encontraron agentes con los filtros seleccionados.
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </TableContainer>
@@ -216,7 +312,6 @@ const AgentsPage: React.FC = () => {
       </Snackbar>
     </Box>
   );
-
 };
 
 export default AgentsPage;
