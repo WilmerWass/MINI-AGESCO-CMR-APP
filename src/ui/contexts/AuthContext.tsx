@@ -21,6 +21,29 @@ interface AuthContextType {
     isAsesor: () => boolean;
 }
 
+// Respuesta esperada del login desde el preload (Electron API)
+interface LoginResponse {
+    success: boolean;
+    user?: unknown; // validado con type guard
+    message?: string;
+}
+
+// Type guard para validar la forma del usuario recibido (p. ej., desde sessionStorage o API)
+function isUser(value: unknown): value is User {
+    if (!value || typeof value !== 'object') return false;
+    const v = value as Record<string, unknown>;
+    const roleOk = v.role === 'admin' || v.role === 'asesor';
+    const statusOk = v.status === 'Activo' || v.status === 'Inactivo';
+    return (
+        typeof v.id === 'string' &&
+        typeof v.email === 'string' &&
+        typeof v.name === 'string' &&
+        roleOk &&
+        statusOk &&
+        (v.avatar === undefined || typeof v.avatar === 'string')
+    );
+}
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
@@ -45,9 +68,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     useEffect(() => {
         const sessionUser = sessionStorage.getItem('user');
         if (sessionUser) {
-            const parsedUser = JSON.parse(sessionUser);
-            setUser(parsedUser);
-            setIsAuthenticated(true);
+            try {
+                const parsed = JSON.parse(sessionUser) as unknown;
+                if (isUser(parsed)) {
+                    setUser(parsed);
+                    setIsAuthenticated(true);
+                } else {
+                    // Datos inválidos almacenados previamente
+                    sessionStorage.removeItem('user');
+                }
+            } catch {
+                // JSON inválido
+                sessionStorage.removeItem('user');
+            }
         }
     }, []);
 
@@ -56,21 +89,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setError(null);
         try {
             if (!window.api || !window.api.login) {
-                throw new Error("La función de login no está disponible en la API.");
+                throw new Error('La función de login no está disponible en la API.');
             }
 
-            const response = await window.api.login({ email, password });
+            const response = (await window.api.login({ email, password })) as LoginResponse;
 
-            if (response.success) {
+            if (response.success && response.user && isUser(response.user)) {
                 setUser(response.user);
                 setIsAuthenticated(true);
                 sessionStorage.setItem('user', JSON.stringify(response.user)); // Persist session
             } else {
-                throw new Error(response.message || "Credenciales incorrectas.");
+                throw new Error(response.message || 'Credenciales incorrectas.');
             }
-        } catch (err: any) {
-            console.error("Error de login:", err);
-            setError(err.message || "Ocurrió un error al iniciar sesión.");
+        } catch (err: unknown) {
+            console.error('Error de login:', err);
+            const message = err instanceof Error ? err.message : 'Ocurrió un error al iniciar sesión.';
+            setError(message);
             setIsAuthenticated(false);
         } finally {
             setLoading(false);
@@ -85,7 +119,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const updateUser = (updatedUser: Partial<User>) => {
         if (user) {
-            const newUser = { ...user, ...updatedUser };
+            const newUser: User = { ...user, ...updatedUser };
             setUser(newUser);
             sessionStorage.setItem('user', JSON.stringify(newUser));
         }
