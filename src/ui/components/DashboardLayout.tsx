@@ -8,6 +8,7 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import LinkIcon from '@mui/icons-material/Link';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import SupervisorAccountIcon from '@mui/icons-material/SupervisorAccount'; // Icon for User Management
+import BackupIcon from '@mui/icons-material/Backup'; // Icon for Backup
 import { useAuth } from '../contexts/AuthContext';
 import InformePage from '../pages/InformePage';
 import ClientsPage from '../pages/ClientsPage';
@@ -15,7 +16,8 @@ import AgentsPage from '../pages/AgentsPage';
 import NotificationsPage from '../pages/NotificationsPage';
 import LinksPage from '../pages/LinksPage';
 import ProfilePage from '../pages/ProfilePage';
-import UsersPage from '../pages/UsersPage'; // Import the new UsersPage
+import UsersPage from '../pages/UsersPage'; //Import the new UsersPage
+import BackupPage from '../pages/BackupPage'; // Import Backup Page
 
 const navItems = [
   { text: 'Informe', icon: <AssessmentIcon />, path: '/dashboard/informe', adminOnly: false },
@@ -23,6 +25,7 @@ const navItems = [
   { text: 'AG.ES.COM', icon: <BusinessIcon />, path: '/dashboard/agescom', adminOnly: false },
   { text: 'Avisos', icon: <NotificationsIcon />, path: '/dashboard/avisos', adminOnly: false },
   { text: 'Usuarios', icon: <SupervisorAccountIcon />, path: '/dashboard/users', adminOnly: true }, // User management page
+  { text: 'Respaldo', icon: <BackupIcon />, path: '/dashboard/backup', adminOnly: true }, // Backup page
   { text: 'Enlaces', icon: <LinkIcon />, path: '/dashboard/enlaces', adminOnly: false },
   { text: 'Perfil', icon: <AccountCircleIcon />, path: '/dashboard/perfil', adminOnly: false },
 ];
@@ -34,7 +37,7 @@ const DashboardLayout: React.FC = () => {
       <AppBar position="fixed" sx={{ backgroundColor: 'var(--sidebar-background)', color: 'var(--sidebar-foreground)', zIndex: (theme) => theme.zIndex.drawer + 1 }}>
         <Toolbar>
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            AGESCO CRM - Dashboard
+            AGECO CRM - Dashboard
           </Typography>
           <Typography variant="subtitle1" sx={{ mr: 2 }}>
             {user?.name}
@@ -89,6 +92,7 @@ const DashboardLayout: React.FC = () => {
           <Route path="enlaces" element={<LinksPage />} />
           <Route path="perfil" element={<ProfilePage />} />
           <Route path="users" element={<UsersPage />} />
+          <Route path="backup" element={<BackupPage />} />
         </Routes>
       </Box>
     </Box>
