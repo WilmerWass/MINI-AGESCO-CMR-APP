@@ -62,3 +62,4 @@ El instalador se generará en la carpeta `dist/`.
 - `/electron`: Código del proceso principal (Main Process).
 - `/src`: Código del frontend (Renderer Process).
 - `/dist`: Archivos compilados y ejecutables.
+ECHO POR WILMERWASS
