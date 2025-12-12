@@ -1,9 +1,15 @@
 import { MongoClient, Db } from 'mongodb';
+import * as fs from 'fs';
+import * as path from 'path';
 
-// Replace with your MongoDB Atlas connection string
-// Example: "mongodb+srv://user:password@clustername.mongodb.net/agesco_crm?retryWrites=true&w=majority"
-// Make sure to replace <user>, <password>, <clustername>, and <dbname> with your actual values.
-const MONGODB_URI = "mongodb+srv://wilmersaludybienestar_db_user:Na19s7JFltdyk2sZ@cluster0.ryqzv2d.mongodb.net/?appName=Cluster0";
+// Load configuration from external file
+const configPath = path.join(__dirname, 'config.json');
+const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+const MONGODB_URI = config.mongo_uri;
+
+if (!MONGODB_URI) {
+    throw new Error('mongo_uri not found in electron/config.json. Please ensure the file exists and contains the connection string.');
+}
 
 let client: MongoClient;
 let db: Db;
@@ -21,7 +27,7 @@ export async function connectToMongoDB(): Promise<Db> {
     return db;
   } catch (error) {
     console.error('Failed to connect to MongoDB', error);
-    process.exit(1); // Exit process if connection fails
+    throw error; // Re-throw the error to be handled by the caller
   }
 }
 

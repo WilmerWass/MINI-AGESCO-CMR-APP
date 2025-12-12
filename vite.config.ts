@@ -11,6 +11,7 @@ export default defineConfig({
       {
         entry: 'electron/main.ts',
         vite: {
+          publicDir: 'electron/public',
           build: {
             rollupOptions: {
               external: ['sqlite3', 'sqlite', 'kerberos', '@mongodb-js/zstd', '@aws-sdk/credential-providers', 'gcp-metadata', 'snappy', 'socks', 'mongodb-client-encryption'],

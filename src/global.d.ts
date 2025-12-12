@@ -25,6 +25,7 @@ declare global {
       getAvisoById: (id: string) => Promise<any | null>;
       addAviso: (aviso: any) => Promise<any>;
       updateAviso: (id: string, updates: any) => Promise<void>;
+      updateAvisoStatus: (id: string, userId: string, status: 'Visto' | 'Pendiente') => Promise<void>;
       deleteAviso: (id: string) => Promise<void>;
 
       getEnlaces: (asesorId?: string) => Promise<any[]>;

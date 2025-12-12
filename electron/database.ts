@@ -1,6 +1,6 @@
 import { app } from 'electron';
 import fs from 'node:fs';
-import { Collection, ObjectId } from 'mongodb';
+import { Collection, ObjectId, Db } from 'mongodb';
 import bcrypt from 'bcryptjs';
 import { connectToMongoDB, getCollection } from './mongo';
 
@@ -62,7 +62,7 @@ async function migrateAsesorIds() {
   }
 }
 
-export async function initializeDatabase(): Promise<void> {
+export async function initializeDatabase(): Promise<Db> {
   const db = await connectToMongoDB();
 
   clientesCollection = db.collection('Clientes');
@@ -83,6 +83,7 @@ export async function initializeDatabase(): Promise<void> {
   await seedDatabase();
   await migrateAsesorIds(); // Run migration
   console.log('Database initialized and collections ready.');
+  return db;
 }
 
 export async function getDashboardData(period: 'today' | 'week' | 'month' | 'total') {
@@ -111,41 +112,41 @@ export async function getDashboardData(period: 'today' | 'week' | 'month' | 'tot
 
     const dateFilter = startDate ? { fechaCreacion: { $gte: startDate } } : {};
 
-    // KPIs
-    const nuevosClientes = await clientesCollection.countDocuments(dateFilter);
-    // Assuming 'estatus' can be 'Activa', 'Activo', etc. Adjust based on actual data values.
-    // Using regex for flexibility or specific value. Let's assume 'Activa' based on common patterns or check typos.
-    const polizasActivas = await clientesCollection.countDocuments({ ...dateFilter, estatus: 'Activa' });
+    // --- Run queries in parallel for efficiency ---
+    const [
+      nuevosClientes,
+      polizasActivas,
+      gestionesPendientes,
+      clientsByAsesorRaw,
+      clientesPorEstado,
+      users,
+    ] = await Promise.all([
+      clientesCollection.countDocuments(dateFilter),
+      clientesCollection.countDocuments({ ...dateFilter, estatus: 'Activa' }),
+      clientesCollection.countDocuments({ ...dateFilter, gestionStatus: 'PENDIENTE' }),
+      clientesCollection.aggregate([
+        { $match: dateFilter },
+        { $group: { _id: "$asesorId", count: { $sum: 1 } } }
+      ]).toArray(),
+      clientesCollection.aggregate([
+        { $match: dateFilter },
+        { $group: { _id: "$estado", count: { $sum: 1 } } },
+        { $project: { estado: { $ifNull: ["$_id", "Sin Estado"] }, clientCount: "$count", _id: 0 } }
+      ]).toArray(),
+      getUsuarios(),
+    ]);
+    
+    // --- Use a Map for fast user lookup (O(1) average access time) ---
+    const userMap = new Map(users.map(u => [u.id, u.name]));
 
-    // Gestiones Pendientes - This field 'gestionStatus' was seen in addCliente as "PENDIENTE"
-    const gestionesPendientes = await clientesCollection.countDocuments({ ...dateFilter, gestionStatus: 'PENDIENTE' });
-
-    // Breakdowns
-
-    // Clients per Asesor
-    const clientsByAsesorRaw = await clientesCollection.aggregate([
-      { $match: dateFilter },
-      { $group: { _id: "$asesorId", count: { $sum: 1 } } }
-    ]).toArray();
-
-    // Fetch users to map IDs to Names
-    const users = await getUsuarios();
     const clientesPorAsesor = clientsByAsesorRaw.map(item => {
-      // Ensure we compare strings, handling both ObjectId and String types in DB
       const idStr = item._id ? item._id.toString() : 'Unknown';
-      const user = users.find(u => u.id === idStr);
+      const asesorName = userMap.get(idStr);
       return {
-        asesorName: user ? user.name : (idStr === 'Unknown' ? 'Sin Asignar' : `ID: ${idStr.substring(0, 6)}...`),
+        asesorName: asesorName || (idStr === 'Unknown' ? 'Sin Asignar' : `ID: ${idStr.substring(0, 6)}...`),
         clientCount: item.count
       };
     });
-
-    // Clients per Estado
-    const clientesPorEstado = await clientesCollection.aggregate([
-      { $match: dateFilter },
-      { $group: { _id: "$estado", count: { $sum: 1 } } },
-      { $project: { estado: { $ifNull: ["$_id", "Sin Estado"] }, clientCount: "$count", _id: 0 } }
-    ]).toArray();
 
     return {
       kpis: {
@@ -158,6 +159,7 @@ export async function getDashboardData(period: 'today' | 'week' | 'month' | 'tot
     };
   } catch (error) {
     console.error('Error fetching dashboard data:', error);
+    // Return a default/empty state on error
     return {
       kpis: { nuevosClientes: 0, polizasActivas: 0, gestionesPendientes: 0 },
       clientesPorAsesor: [],
@@ -169,7 +171,7 @@ export async function getDashboardData(period: 'today' | 'week' | 'month' | 'tot
 // --- Clientes ---
 export async function getClientes(asesorId?: string) {
   const query = asesorId ? { asesorId } : {};
-  const clientes = await clientesCollection.find(query).toArray();
+  const clientes = await clientesCollection.find(query).sort({ fechaCreacion: -1 }).toArray();
   return clientes.map(mapDocument);
 }
 export async function getClienteById(id: string) {
@@ -298,7 +300,14 @@ export async function getAvisos(user: { id: string; email: string; }) {
       { recipient: 'Todos' }
     ]
   }).toArray();
-  return avisos.map(mapDocument);
+  
+  return avisos.map(doc => {
+    const mappedDoc = mapDocument(doc);
+    if (mappedDoc) {
+      mappedDoc.status = doc.readBy?.includes(user.id) ? 'Visto' : 'Pendiente';
+    }
+    return mappedDoc;
+  });
 }
 export async function getAvisoById(id: string) {
   try {
@@ -311,15 +320,15 @@ export async function getAvisoById(id: string) {
 }
 export async function addAviso(aviso: any) {
   try {
-    const { clientId, note, status, creator, recipient, asesorId } = aviso;
+    const { clientId, note, creator, recipient, asesorId } = aviso;
     const now = new Date().toISOString();
     const result = await avisosCollection.insertOne({
-      clientId: typeof clientId === 'string' ? new ObjectId(clientId) : clientId, // Convert to ObjectId if it's a string, otherwise keep as is
+      clientId: typeof clientId === 'string' ? new ObjectId(clientId) : clientId,
       note,
-      status,
       creator,
       recipient,
       asesorId,
+      readBy: [], // New field
       updated_at: now,
     });
     return result.insertedId.toHexString();
@@ -331,19 +340,14 @@ export async function addAviso(aviso: any) {
 export async function updateAviso(id: string, updates: any) {
   try {
     const now = new Date().toISOString();
-    const updateDoc: any = {
+    const { id: _, ...updateFields } = updates;
+
+    const updateDoc = {
       $set: {
+        ...updateFields,
         updated_at: now,
       },
     };
-
-    if (updates.clientId !== undefined) {
-      updateDoc.$set.clientId = typeof updates.clientId === 'string' ? new ObjectId(updates.clientId) : updates.clientId;
-    }
-    if (updates.note !== undefined) updateDoc.$set.note = updates.note;
-    if (updates.status !== undefined) updateDoc.$set.status = updates.status;
-    if (updates.creator !== undefined) updateDoc.$set.creator = updates.creator;
-    if (updates.recipient !== undefined) updateDoc.$set.recipient = updates.recipient;
 
     await avisosCollection.updateOne(
       { _id: new ObjectId(id) },
@@ -352,6 +356,28 @@ export async function updateAviso(id: string, updates: any) {
   } catch (error) {
     console.error(`Error updating aviso by ID ${id}:`, error);
   }
+}
+
+export async function updateAvisoStatus(id: string, userId: string, status: 'Visto' | 'Pendiente') {
+    try {
+        const now = new Date().toISOString();
+        const updateDoc: any = {
+            $set: { updated_at: now }
+        };
+
+        if (status === 'Visto') {
+            updateDoc.$addToSet = { readBy: userId };
+        } else {
+            updateDoc.$pull = { readBy: userId };
+        }
+
+        await avisosCollection.updateOne(
+            { _id: new ObjectId(id) },
+            updateDoc
+        );
+    } catch (error) {
+        console.error(`Error updating aviso status for ID ${id}:`, error);
+    }
 }
 export async function deleteAviso(id: string) {
   try {
@@ -539,6 +565,54 @@ export async function getAllSyncData() {
     };
   } catch (error) {
     console.error('Error fetching all sync data:', error);
+    return { clientes: [], agentes: [], avisos: [], enlaces: [], usuarios: [] };
+  }
+}
+
+export async function getSyncDataForUser(user: any) {
+  try {
+    if (user.role === 'admin') {
+      return await getAllSyncData();
+    }
+
+    // For 'asesor' role
+    const asesorId = user.id;
+
+    const [clientes, agentes, avisos, enlaces, usersRaw] = await Promise.all([
+      clientesCollection.find({ asesorId }).toArray(),
+      agentesCollection.find({}).toArray(), // Return all agetnes
+      avisosCollection.find({
+        $or: [
+          { asesorId: asesorId },
+          { recipient: user.email },
+          { recipient: 'Todos' }
+        ]
+      }).toArray(),
+      enlacesCollection.find({
+        $or: [
+          { asesorId: asesorId },
+          { asesorId: { $exists: false } },
+          { asesorId: null }
+        ]
+      }).toArray(),
+      usuariosCollection.find({}, { projection: { password: 0 } }).toArray()
+    ]);
+
+    const usuarios = usersRaw.map(u => {
+      const { _id, ...rest } = u;
+      return { id: _id.toHexString(), ...rest };
+    });
+
+    return {
+      clientes: clientes.map(mapDocument),
+      agentes: agentes.map(mapDocument),
+      avisos: avisos.map(mapDocument),
+      enlaces: enlaces.map(mapDocument),
+      usuarios
+    };
+
+  } catch (error) {
+    console.error(`Error fetching sync data for user ${user.email}:`, error);
     return { clientes: [], agentes: [], avisos: [], enlaces: [], usuarios: [] };
   }
 }

@@ -16,8 +16,10 @@ async function syncTable(
   if (!peerRecords || !Array.isArray(peerRecords)) {
     return; // No data to sync for this table
   }
+  console.log('syncTable: processing', peerRecords.length, 'records'); // DEBUG
 
   for (const peerRecord of peerRecords) {
+    console.log('syncTable: processing record:', peerRecord); // DEBUG
     if (!peerRecord.id || !peerRecord.updated_at) {
       console.warn('Sync handler: skipping record without id or updated_at', peerRecord);
       continue;

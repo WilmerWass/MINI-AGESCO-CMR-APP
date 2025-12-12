@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
 import bcrypt from 'bcryptjs';
@@ -6,7 +6,7 @@ import {
   initializeDatabase,
   getClientes, getClienteById, addCliente, updateCliente, deleteCliente,
   getAgentes, getAgenteById, addAgente, updateAgente, deleteAgente,
-  getAvisos, getAvisoById, addAviso, updateAviso, deleteAviso,
+  getAvisos, getAvisoById, addAviso, updateAviso, deleteAviso, updateAvisoStatus,
   getEnlaces, getEnlaceById, addEnlace, updateEnlace, deleteEnlace,
   getUsuarios, getUsuarioById, addUsuario, updateUsuario, deleteUsuario, getUsuarioByEmail,
   getDashboardData
@@ -76,11 +76,21 @@ app.on('activate', () => {
 });
 
 app.whenReady().then(async () => {
-  await initializeDatabase();
-  createWindow();
+  try {
+    const db = await initializeDatabase();
+    createWindow();
 
-  if (win) {
-    startP2PServer(win);
+    if (win) {
+      startP2PServer(win, db);
+    }
+  } catch (error) {
+    dialog.showErrorBox(
+      'Error Fatal de la Aplicación',
+      'No se pudo inicializar la base de datos. La aplicación se cerrará.\n\n' +
+      'Por favor, revise la configuración y la conexión de red.\n\n' +
+      `Detalles: ${error.message}`
+    );
+    app.quit();
   }
 
   // IPC Main handler for Login
@@ -126,6 +136,7 @@ app.whenReady().then(async () => {
   ipcMain.handle('get-aviso-by-id', async (event, id) => getAvisoById(id));
   ipcMain.handle('add-aviso', async (event, aviso) => addAviso(aviso));
   ipcMain.handle('update-aviso', async (event, id, updates) => updateAviso(id, updates));
+  ipcMain.handle('update-aviso-status', async (event, id, userId, status) => updateAvisoStatus(id, userId, status));
   ipcMain.handle('delete-aviso', async (event, id) => deleteAviso(id));
 
   // IPC Main handlers for Enlaces operations

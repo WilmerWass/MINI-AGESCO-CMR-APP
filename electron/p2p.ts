@@ -1,9 +1,9 @@
-import { BrowserWindow } from 'electron';
+import { BrowserWindow, ipcMain } from 'electron';
 import os from 'os';
 import express from 'express';
 import bodyParser from 'body-parser';
 const mdns = require('mdns-js');
-import { getAllSyncData } from './database';
+import { getAllSyncData, getSyncDataForUser } from './database';
 const fetch = require('node-fetch');
 
 // Configuration
@@ -121,6 +121,42 @@ function findPortAndStartExpressServer(appInstance: express.Application, current
   });
 }
 
+async function getCurrentUser(): Promise<any | null> {
+    return new Promise((resolve) => {
+        if (!mainWindow) {
+            resolve(null);
+            return;
+        }
+
+        // Unique channel for the response
+        const responseChannel = 'get-current-user-response';
+
+        // Listen for the response
+        ipcMain.once(responseChannel, (event, user) => {
+            resolve(user);
+        });
+
+        // Send the request to the renderer
+        mainWindow.webContents.send('get-current-user-request', responseChannel);
+
+        // Timeout to prevent hanging forever
+        setTimeout(() => {
+            resolve(null);
+        }, 5000); // 5 second timeout
+    });
+}
+
+async function obtener_data_para_sync() {
+    const user = await getCurrentUser();
+    console.log('p2p.ts: getCurrentUser returned:', user); // DEBUG
+    if (user && user.role) {
+        console.log(`Syncing data for user: ${user.email} with role: ${user.role}`);
+        return await getSyncDataForUser(user);
+    }
+    console.log('Syncing data for all users (fallback).');
+    return await getAllSyncData();
+}
+
 function setupExpressServer() {
   const app = express();
   app.use(bodyParser.json());
@@ -132,24 +168,18 @@ function setupExpressServer() {
       mainWindow.webContents.send('p2p-data-in', dataDelPeer);
     }
 
-    const dataLocal = await obtener_data_sqlite_para_respuesta();
+    const dataLocal = await obtener_data_para_sync();
     res.json(dataLocal);
   });
 
   findPortAndStartExpressServer(app, BASE_P2P_SERVER_PORT, 0);
 }
 
-
-async function obtener_data_sqlite_para_respuesta() {
-  if (!db) return {};
-  return await getAllSyncData(db);
-}
-
 // --- MODULE 2: CLIENT AND SCHEDULED SYNC ---
 
 async function iniciarSincronizacionP2P() {
   console.log('Starting P2P sync cycle...');
-  const dataLocal = await obtener_data_sqlite_para_peticion();
+  const dataLocal = await obtener_data_para_sync();
 
   // Filter out self and potentially dead peers (though mDNS cleanup helps)
   const peersToSync = peersActivos.filter(peer => 
@@ -182,11 +212,6 @@ async function iniciarSincronizacionP2P() {
       peersActivos = peersActivos.filter(p => p.name !== peer.name);
     }
   }
-}
-
-async function obtener_data_sqlite_para_peticion() {
-    if (!db) return {};
-    return await getAllSyncData(db);
 }
 
 // --- INITIALIZATION ---

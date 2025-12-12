@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { aplicarDatosRecibidos } from '../../lib/sync_handler';
 
 interface User {
     id: string;
@@ -83,6 +84,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
         }
     }, []);
+
+    useEffect(() => {
+        const handleGetCurrentUser = (_event: any, responseChannel: string) => {
+            const sessionUser = sessionStorage.getItem('user');
+            let currentUser: User | null = user;
+
+            if (!currentUser && sessionUser) {
+                try {
+                    const parsed = JSON.parse(sessionUser);
+                    if (isUser(parsed)) {
+                        currentUser = parsed;
+                    }
+                } catch {
+                    // Invalid JSON, do nothing
+                }
+            }
+
+            window.ipcRenderer.send(responseChannel, currentUser);
+        };
+
+        const handleP2pDataIn = (_event: any, data: any) => {
+            console.log('Received p2p data in renderer:', data);
+            aplicarDatosRecibidos(data);
+        };
+
+        window.ipcRenderer.on('get-current-user-request', handleGetCurrentUser);
+        window.ipcRenderer.on('p2p-data-in', handleP2pDataIn);
+
+
+        return () => {
+            window.ipcRenderer.off('get-current-user-request', handleGetCurrentUser);
+            window.ipcRenderer.off('p2p-data-in', handleP2pDataIn);
+        };
+    }, [user]);
 
     const login = async (email: string, password: string) => {
         setLoading(true);

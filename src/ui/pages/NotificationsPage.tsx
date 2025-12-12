@@ -60,17 +60,15 @@ const NotificationsPage: React.FC = () => {
     fetchNotifications();
   }, [fetchNotifications]);
 
-  const handleUpdateAvisoStatus = async (id: string, newStatus: string) => {
+  const handleUpdateAvisoStatus = async (id: string, newStatus: 'Visto' | 'Pendiente') => {
+    if (!user) return;
     try {
-      if (!window.api || !window.api.updateAviso) {
-        throw new Error('API para actualizar avisos no disponible.');
+      if (!window.api || !window.api.updateAvisoStatus) {
+        throw new Error('API para actualizar estado de avisos no disponible.');
       }
-      const notificationToUpdate = notifications.find(n => n.id === id);
-      if (notificationToUpdate) {
-        await window.api.updateAviso(id, { ...notificationToUpdate, status: newStatus });
-        setSnackbar({ open: true, message: '✅ Estado del aviso actualizado.', severity: 'success' });
-        await fetchNotifications(); // Refresh list
-      }
+      await window.api.updateAvisoStatus(id, user.id, newStatus);
+      setSnackbar({ open: true, message: '✅ Estado del aviso actualizado.', severity: 'success' });
+      await fetchNotifications(); // Refresh list
     } catch (err: any) {
       console.error(`Failed to update aviso status for ID ${id}:`, err);
       setSnackbar({ open: true, message: `❌ Error al actualizar aviso: ${err.message}`, severity: 'error' });
@@ -129,7 +127,8 @@ const NotificationsPage: React.FC = () => {
       </Stack>
       <Grid container spacing={3}>
         {notifications.map((notification) => (
-          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={notification.id}>
+          {/* @ts-ignore */}
+          <Grid item xs={12} sm={6} md={4} key={notification.id} component="div">
             <Card sx={{ backgroundColor: 'var(--card)' }}>
               <CardContent>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>

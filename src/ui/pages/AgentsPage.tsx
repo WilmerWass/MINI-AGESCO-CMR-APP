@@ -66,18 +66,17 @@ const AgentsPage: React.FC = () => {
   const currentAsesorId = user?.id;
 
   const fetchAgents = useCallback(async () => {
-    if (!currentAsesorId) return;
     setLoading(true);
     setError(null);
     try {
-      const fetchedAgents = await window.api.getAgentes(isAdmin() ? undefined : currentAsesorId);
-      setAgents(fetchedAgents);
+      const fetchedAgentes = await window.api.getAgentes(); // Fetch all agents, regardless of role
+      setAgents(fetchedAgentes);
     } catch (err: any) {
       setError(`Error al cargar agentes: ${err.message}`);
     } finally {
       setLoading(false);
     }
-  }, [currentAsesorId, isAdmin]);
+  }, []); // Depend on nothing that changes the filter behavior
 
   useEffect(() => {
     fetchAgents();

@@ -40,10 +40,11 @@ contextBridge.exposeInMainWorld('api', {
   deleteAgente: (id: number) => ipcRenderer.invoke('delete-agente', id),
 
   // Avisos
-  getAvisos: (asesorId: string) => ipcRenderer.invoke('get-avisos', asesorId),
+  getAvisos: (user: { id: string; email: string; }) => ipcRenderer.invoke('get-avisos', user),
   addAviso: (aviso: any) => ipcRenderer.invoke('add-aviso', aviso),
-  updateAviso: (id: number, updates: any) => ipcRenderer.invoke('update-aviso', id, updates),
-  deleteAviso: (id: number) => ipcRenderer.invoke('delete-aviso', id),
+  updateAviso: (id: string, updates: any) => ipcRenderer.invoke('update-aviso', id, updates),
+  updateAvisoStatus: (id: string, userId: string, status: 'Visto' | 'Pendiente') => ipcRenderer.invoke('update-aviso-status', id, userId, status),
+  deleteAviso: (id: string) => ipcRenderer.invoke('delete-aviso', id),
 
   // Enlaces
   getEnlaces: (asesorId: string) => ipcRenderer.invoke('get-enlaces', asesorId),
