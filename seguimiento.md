@@ -1,8 +1,14 @@
 # Seguimiento del Proyecto: MINI AGECO CRM
 
+**PLANIFICACIÓN DETALLADA DISPONIBLE:** Para un desglose completo de las nuevas funcionalidades, propuestas de diseño y el plan de trabajo paso a paso, por favor consulta los siguientes documentos:
+- **[Análisis de Guías Visuales](./analisis_guias.md)**
+- **[Plan de Desarrollo Detallado](./plan_de_desarrollo_detallado.md)**
+
+---
+
 Este documento centraliza el estado del proyecto, las futuras implementaciones y los recursos necesarios para la renovación de la aplicación.
 
-## Estado Actual del Proyecto (Versión 1.1.3)
+## Estado Actual del Proyecto (Versión 1.1.0)
 
 La aplicación se encuentra en un estado **funcional y estable**, con las siguientes características principales completadas:
 
