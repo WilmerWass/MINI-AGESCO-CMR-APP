@@ -9,6 +9,7 @@ dist
 dist-electron
 release
 build
+*.log # Added to ignore build logs
 
 # Development
 .vite
