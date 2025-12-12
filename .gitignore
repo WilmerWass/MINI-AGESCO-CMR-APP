@@ -26,6 +26,14 @@ build_output.log
 # Operating System
 .DS_Store
 Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN
+*.cab
+*.msi
+*.msm
+*.msp
+
 
 # IDE / Editor
 .vscode

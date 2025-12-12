@@ -1,38 +1,64 @@
-# AGECO CRM
+# 🚀 MINI AGECO CRM (Beta)
 
-Una aplicación de escritorio para la gestión de relaciones con clientes (CRM), construida con tecnologías web modernas y empaquetada para su uso en escritorio con Electron.
+![Status](https://img.shields.io/badge/Status-Beta%20v1.0.3-blue)
+![Electron](https://img.shields.io/badge/Electron-v39-2F3241?logo=electron)
+![React](https://img.shields.io/badge/React-v19-61DAFB?logo=react)
+![MongoDB](https://img.shields.io/badge/Db-MongoDB-47A248?logo=mongodb)
 
-## Características Principales
+CRM de escritorio ligero y potente para la gestión eficiente de clientes, agentes y pólizas. Diseñado para ofrecer alto rendimiento, funcionamiento offline (parcial) y una experiencia de usuario moderna.
 
-- **Autenticación Segura:** Sistema de login con roles (administrador, asesor) y contraseñas hasheadas.
-- **Gestión de Usuarios:** Creación, edición y eliminación de usuarios del sistema (solo para administradores).
-- **Gestión de Clientes:** CRUD completo para la cartera de clientes, asignados a cada asesor.
-- **Gestión de Agentes:** CRUD para la gestión de agentes/compañías externas.
-- **Sistema de Avisos:** Creación y seguimiento de avisos o tareas pendientes, asociadas a clientes y usuarios.
-- **Panel de Informes:** Dashboard con KPIs y visualización de datos clave.
-- **Perfiles de Usuario:** Edición de información personal y avatar.
+## ✨ Características Principales
 
-## Tecnologías Utilizadas
+- **🔐 Seguridad Robusta:** Login con hashes Bcrypt y roles diferenciados (Admin/Asesor).
+- **👥 Gestión Integral:**
+  - **Clientes:** Vista 360°, historial y seguimiento.
+  - **Agentes:** Base de datos de colaboradores externos.
+  - **Usuarios:** Control de acceso interno.
+- **💾 Respaldo y Datos:** Sistema de exportación/importación (JSON/CSV) integrado.
+- **📊 Dashboard Inteligente:** KPIs en tiempo real y métricas clave.
+- **🔔 Sistema de Avisos:** Gestión de tareas y recordatorios.
 
-- **Frontend:** React, TypeScript, Vite
-- **UI:** Material-UI (MUI)
-- **Backend y Entorno de Escritorio:** Electron, Node.js
-- **Base de Datos:** SQLite3
+## 🛠 Stack Tecnológico
 
-## Puesta en Marcha
+| Componente        | Tecnología                   |
+| :---------------- | :--------------------------- |
+| **Frontend**      | React 19 + TypeScript + Vite |
+| **UI Framework**  | Material-UI (MUI v6)         |
+| **Core**          | Electron v39                 |
+| **Base de Datos** | MongoDB (Local/Atlas)        |
 
-Sigue estos pasos para instalar y ejecutar el proyecto en un entorno de desarrollo.
+## 🚀 Instalación y Puesta en Marcha
 
-### 1. Instalar Dependencias
+### Prerrequisitos
 
-Abre una terminal en la raíz del proyecto y ejecuta:
+- Node.js (v18 o superior)
+- MongoDB (corriendo localmente o string de conexión Atlas)
+
+### 1. Desarrollo Local
+
+Para trabajar en el código fuente con recarga en caliente (HMR):
+
 ```bash
+# Instalar dependencias
 npm install
-```
 
-### 2. Ejecutar la Aplicación
-
-Para iniciar la aplicación en modo de desarrollo (con recarga en caliente):
-```bash
+# Iniciar entorno de desarrollo
 npm run dev:electron
 ```
+
+### 2. Generar Ejecutable (.exe)
+
+Para compilar la aplicación para producción (Windows):
+
+```bash
+# Compilar y empaquetar
+npm run build:electron
+```
+
+El instalador se generará en la carpeta `dist/`.
+
+## 📦 Estructura del Proyecto
+
+- `/electron`: Código del proceso principal (Main Process).
+- `/src`: Código del frontend (Renderer Process).
+- `/dist`: Archivos compilados y ejecutables.

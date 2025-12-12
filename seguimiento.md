@@ -1,6 +1,7 @@
 # Seguimiento del Proyecto: MINI AGECO CRM
 
 **PLANIFICACIÓN DETALLADA DISPONIBLE:** Para un desglose completo de las nuevas funcionalidades, propuestas de diseño y el plan de trabajo paso a paso, por favor consulta los siguientes documentos:
+
 - **[Análisis de Guías Visuales](./analisis_guias.md)**
 - **[Plan de Desarrollo Detallado](./plan_de_desarrollo_detallado.md)**
 
@@ -8,12 +9,14 @@
 
 Este documento centraliza el estado del proyecto, las futuras implementaciones y los recursos necesarios para la renovación de la aplicación.
 
-## Estado Actual del Proyecto (Versión 1.1.0)
+## Estado Actual del Proyecto (Versión 1.0.3 Beta)
 
 La aplicación se encuentra en un estado **funcional y estable**, con las siguientes características principales completadas:
 
 - **Autenticación y Roles:** Sistema de login robusto con roles (admin/asesor) y persistencia de sesión.
 - **Módulos CRUD Completos:** Gestión de Clientes, Agentes, Usuarios y Avisos totalmente funcional y conectada a la base de datos MongoDB.
+- **Sistema de Respaldo:** ✅ Implementada exportación/importación de datos (JSON/CSV).
+- **Ejecutable de Escritorio:** ✅ Generación de instalador (`.exe`) con Electron Builder configurada y funcional.
 - **Página de Perfil:** Edición de datos de usuario y cambio de contraseña.
 - **Paginación y Mejoras de Rendimiento:** Implementada paginación en la tabla de clientes para un manejo eficiente de grandes volúmenes de datos.
 - **Reglas de Negocio:** Implementada la lógica para que los asesores solo vean sus datos, mientras que los administradores tienen una vista global.
@@ -21,19 +24,22 @@ La aplicación se encuentra en un estado **funcional y estable**, con las siguie
 ## Futuras Implementaciones
 
 ### 🔴 Alta Prioridad
+
 1.  **Validación Avanzada de Formularios:** Implementar validación de campos requeridos, formatos (email, teléfono) y reglas de negocio en todos los formularios.
-2.  **Sistema de Respaldo y Exportación:** Crear una página dedicada para que los administradores puedan exportar e importar datos en formato JSON y CSV.
+2.  **Sistema de Respaldo y Exportación:** ✅ COMPLETADO (v1.0.3).
 
 ### 🟡 Prioridad Media
+
 - **Refactorización de Consultas:** Optimizar las consultas a la base de datos, especialmente en el dashboard.
 - **Filtros Avanzados:** Mejorar la capacidad de filtrado en todas las tablas (ej. por rango de fechas).
 - **Mejoras Visuales y de Usabilidad (UX):**
-    - Realizar un pulido general de la interfaz.
-    - Implementar un sistema de notificaciones consistente (ej. Snackbar).
-    - Añadir un interruptor para **Modo Oscuro/Claro**.
+  - Realizar un pulido general de la interfaz.
+  - Implementar un sistema de notificaciones consistente (ej. Snackbar).
+  - Añadir un interruptor para **Modo Oscuro/Claro**.
 
 ### 🟢 Prioridad Baja
-- **Empaquetado y Distribución:** Configurar `electron-builder` para generar instaladores para Windows.
+
+- **Empaquetado y Distribución:** ✅ COMPLETADO (v1.0.3).
 - **Testing:** Implementar un framework de pruebas como Vitest o Jest.
 - **Gestor Documental:** Permitir subir archivos (PDF, imágenes) a la ficha del cliente.
 - **Integración con WhatsApp/Email:** Añadir botones de acción rápida con plantillas.
