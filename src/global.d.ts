@@ -42,6 +42,7 @@ declare global {
 
       getDashboardData: (period: 'today' | 'week' | 'month' | 'total') => Promise<{ success: boolean; data?: any; message?: string }>;
       getAllSyncData: () => Promise<{ clientes: any[]; agentes: any[]; avisos: any[]; enlaces: any[]; usuarios: any[] }>;
+      importBackupData: (data: any) => Promise<{ success: boolean; message: string; stats?: any }>;
       saveAvatar: (filePath: string) => Promise<string | null>;
     };
   }

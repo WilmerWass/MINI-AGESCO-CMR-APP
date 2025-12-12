@@ -16,17 +16,15 @@
       "dist",
       "dist-electron"
     ],
-    "directories": {
-      "buildResources": "build-resources"
-    },
+
     "win": {
-      "target": "nsis",
-      "icon": "build-resources/icon.ico",
-      "nsis": {
-        "allowToChangeInstallationDirectory": true,
-        "perMachine": false,
-        "oneClick": false
-      }
+      "target": ["nsis"],
+      "icon": "build-resources/icon.ico"
+    },
+    "nsis": {
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "oneClick": false
     }
   },
   "keywords": [],

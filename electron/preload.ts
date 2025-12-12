@@ -60,4 +60,8 @@ contextBridge.exposeInMainWorld('api', {
 
   // Profile
   saveAvatar: (filePath: string) => ipcRenderer.invoke('save-avatar', filePath),
+
+  // Backup & Sync
+  getAllSyncData: () => ipcRenderer.invoke('get-all-sync-data'),
+  importBackupData: (data: any) => ipcRenderer.invoke('import-backup-data', data),
 })

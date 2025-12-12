@@ -9,7 +9,7 @@ import {
   getAvisos, getAvisoById, addAviso, updateAviso, deleteAviso, updateAvisoStatus,
   getEnlaces, getEnlaceById, addEnlace, updateEnlace, deleteEnlace,
   getUsuarios, getUsuarioById, addUsuario, updateUsuario, deleteUsuario, getUsuarioByEmail,
-  getDashboardData
+  getDashboardData, getAllSyncData, importBackupData
 } from './database';
 import { startP2PServer } from './p2p';
 
@@ -194,4 +194,8 @@ app.whenReady().then(async () => {
       return null;
     }
   });
+
+  // IPC Main handlers for Backup/Sync
+  ipcMain.handle('get-all-sync-data', async () => getAllSyncData());
+  ipcMain.handle('import-backup-data', async (event, data) => importBackupData(data));
 });

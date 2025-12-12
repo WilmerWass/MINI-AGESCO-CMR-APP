@@ -126,9 +126,8 @@ const NotificationsPage: React.FC = () => {
         </Button>
       </Stack>
       <Grid container spacing={3}>
-        {notifications.map((notification) => (
-          {/* @ts-ignore */}
-          <Grid item xs={12} sm={6} md={4} key={notification.id} component="div">
+        {notifications.map((notification, idx) => (
+          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={String(notification.id ?? idx)}>
             <Card sx={{ backgroundColor: 'var(--card)' }}>
               <CardContent>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>

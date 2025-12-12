@@ -173,7 +173,11 @@ const BackupPage: React.FC = () => {
                         setMessage({ type: 'info', text: 'Importando datos a la base de datos...' });
 
                         // Aquí podrías llamar a una función del backend para importar los datos
-                        // await window.api.importBackupData(jsonData);
+                        const result = await window.api.importBackupData(jsonData);
+                        
+                        if (!result.success) {
+                            throw new Error(result.message);
+                        }
 
                         setProgress(100);
                         setMessage({

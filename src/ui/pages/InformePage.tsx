@@ -123,25 +123,23 @@ const InformePage = () => {
                 </Paper>
               </Box>
       
-              <Grid container spacing={3} justifyContent="center">
-                {/* @ts-ignore */}
-                <Grid item xs={12} sm={6} md={4} component="div">            <KpiCard title="Nuevos Clientes" value={data?.kpis?.nuevosClientes ?? 0} icon={<PersonAdd fontSize="large" color="primary" />} isLoading={loading} />
-          </Grid>
-          {/* @ts-ignore */}
-          <Grid item xs={12} sm={6} md={4} component="div">
-            <KpiCard title="Pólizas Activas" value={data?.kpis?.polizasActivas ?? 0} icon={<VerifiedUser fontSize="large" color="success" />} isLoading={loading} />
-          </Grid>
-          {/* @ts-ignore */}
-          <Grid item xs={12} sm={12} md={4} component="div">
-            <KpiCard title="Gestiones Pendientes" value={data?.kpis?.gestionesPendientes ?? 0} icon={<Warning fontSize="large" color="warning" />} isLoading={loading} />
-          </Grid>
+      <Grid container spacing={3} justifyContent="center">
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <KpiCard title="Nuevos Clientes" value={data?.kpis?.nuevosClientes ?? 0} icon={<PersonAdd fontSize="large" color="primary" />} isLoading={loading} />
         </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <KpiCard title="Pólizas Activas" value={data?.kpis?.polizasActivas ?? 0} icon={<VerifiedUser fontSize="large" color="success" />} isLoading={loading} />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 12, md: 4 }}>
+          <KpiCard title="Gestiones Pendientes" value={data?.kpis?.gestionesPendientes ?? 0} icon={<Warning fontSize="large" color="warning" />} isLoading={loading} />
+        </Grid>
+      </Grid>
       </Box>
 
       {/* Client Breakdown Section */}
       <Grid container spacing={4}>
-                {/* @ts-ignore */}
-                <Grid item xs={12} md={6} component="div">          <Card elevation={4} sx={{ backgroundColor: 'var(--card)', height: '450px', borderRadius: 3 }}>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Card elevation={4} sx={{ backgroundColor: 'var(--card)', height: '450px', borderRadius: 3 }}>
             <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: 3 }}>
               <Typography variant="h6" gutterBottom fontWeight="600" align="center">
                 Clientes por Asesor
@@ -178,8 +176,7 @@ const InformePage = () => {
         </Grid>
 
         {/* Clientes por Estado - Pie Chart */}
-        {/* @ts-ignore */}
-        <Grid item xs={12} md={6} component="div">
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card elevation={4} sx={{ backgroundColor: 'var(--card)', height: '450px', borderRadius: 3 }}>
             <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: 3 }}>
               <Typography variant="h6" gutterBottom fontWeight="600" align="center">

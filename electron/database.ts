@@ -616,3 +616,106 @@ export async function getSyncDataForUser(user: any) {
     return { clientes: [], agentes: [], avisos: [], enlaces: [], usuarios: [] };
   }
 }
+
+export interface ImportResult {
+  success: boolean;
+  message: string;
+  stats?: {
+    clientes: number;
+    agentes: number;
+    avisos: number;
+    enlaces: number;
+  };
+}
+
+export async function importBackupData(data: any): Promise<ImportResult> {
+  try {
+    const { clientes, agentes, avisos, enlaces } = data;
+    let stats = { clientes: 0, agentes: 0, avisos: 0, enlaces: 0 };
+
+    // Validar estructura básica
+    if (!clientes && !agentes && !avisos && !enlaces) {
+      return { success: false, message: 'El archivo no contiene datos válidos para importar.' };
+    }
+
+    // --- Clientes ---
+    if (Array.isArray(clientes)) {
+      for (const item of clientes) {
+        if (item.id) {
+          const { id, ...rest } = item;
+           // Asegurar que asesorId sea string
+          if (rest.asesorId && typeof rest.asesorId !== 'string') rest.asesorId = String(rest.asesorId);
+          await clientesCollection.updateOne(
+            { _id: new ObjectId(id) },
+            { $set: { ...rest } },
+            { upsert: true }
+          );
+          stats.clientes++;
+        }
+      }
+    }
+
+    // --- Agentes ---
+    if (Array.isArray(agentes)) {
+      for (const item of agentes) {
+        if (item.id) {
+            const { id, ...rest } = item;
+             if (rest.asesorId && typeof rest.asesorId !== 'string') rest.asesorId = String(rest.asesorId);
+            await agentesCollection.updateOne(
+                { _id: new ObjectId(id) },
+                { $set: { ...rest } },
+                { upsert: true }
+            );
+            stats.agentes++;
+        }
+      }
+    }
+
+    // --- Avisos ---
+    if (Array.isArray(avisos)) {
+      for (const item of avisos) {
+         if (item.id) {
+            const { id, ...rest } = item;
+             // Ensure clientId is ObjectId if present
+            if (rest.clientId && typeof rest.clientId === 'string') {
+                try { rest.clientId = new ObjectId(rest.clientId); } catch (e) {}
+            }
+             if (rest.asesorId && typeof rest.asesorId !== 'string') rest.asesorId = String(rest.asesorId);
+
+            await avisosCollection.updateOne(
+                { _id: new ObjectId(id) },
+                { $set: { ...rest } },
+                { upsert: true }
+            );
+            stats.avisos++;
+         }
+      }
+    }
+
+    // --- Enlaces ---
+    if (Array.isArray(enlaces)) {
+      for (const item of enlaces) {
+        if (item.id) {
+            const { id, ...rest } = item;
+             if (rest.asesorId && typeof rest.asesorId !== 'string') rest.asesorId = String(rest.asesorId);
+            await enlacesCollection.updateOne(
+                { _id: new ObjectId(id) },
+                { $set: { ...rest } },
+                { upsert: true }
+            );
+            stats.enlaces++;
+        }
+      }
+    }
+
+    return { 
+        success: true, 
+        message: 'Datos importados correctamente.',
+        stats
+    };
+
+  } catch (error) {
+    console.error('Error importing backup data:', error);
+    return { success: false, message: `Error crítico al importar: ${error.message}` };
+  }
+}
